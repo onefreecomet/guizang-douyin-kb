@@ -213,7 +213,11 @@ def local_downloaded_ids(base: Path) -> set:
     return downloaded_ids(base)
 
 
-def deps_status():
+def deps_status(config=None):
+    cfg = config or get_settings().get()
+    base = Path(cfg.get("base_dir") or DEFAULT_BASE)
+    cookies = Path(cfg.get("cookies") or DEFAULT_COOKIES)
+
     def run(cmd):
         try:
             r = run_command(cmd, capture_output=True, text=True, timeout=25,
@@ -242,9 +246,9 @@ def deps_status():
         "node": node,
         "lark": lark,
         "lark_user": user,
-        "cookies_exists": DEFAULT_COOKIES.exists(),
-        "cookies_path": str(DEFAULT_COOKIES),
-        "default_base": str(DEFAULT_BASE),
+        "cookies_exists": cookies.exists(),
+        "cookies_path": str(cookies),
+        "default_base": str(base),
     }
 
 
@@ -667,7 +671,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, f.read_bytes(), MIME[".html"])
 
         if path == "/api/status":
-            return self._json(deps_status())
+            return self._json(deps_status(get_settings().get()))
 
         if path == "/api/job":
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

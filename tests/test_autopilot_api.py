@@ -530,5 +530,30 @@ class AiProbeTests(unittest.TestCase):
             server.ai_probe(dict(self.config, ai_api_key=''))
 
 
+class DependenciesStatusTests(unittest.TestCase):
+    """状态栏回报的路径必须来自设置，而不是打包时的默认值。"""
+
+    def test_status_reports_configured_paths(self):
+        root = ROOT / 'tests' / '.runs' / uuid.uuid4().hex
+        root.mkdir(parents=True)
+        try:
+            cookies = root / 'cookies.txt'
+            cookies.write_text('# Netscape HTTP Cookie File\n', encoding='utf-8')
+            config = {'base_dir': str(root), 'cookies': str(cookies)}
+            stub = type('Result', (), {'stdout': '{}', 'stderr': ''})()
+            with patch.object(server, 'run_command', lambda *a, **k: stub):
+                data = server.deps_status(config)
+            self.assertEqual(data['default_base'], str(root))
+            self.assertEqual(data['cookies_path'], str(cookies))
+            self.assertTrue(data['cookies_exists'])
+
+            cookies.unlink()
+            with patch.object(server, 'run_command', lambda *a, **k: stub):
+                data = server.deps_status(config)
+            self.assertFalse(data['cookies_exists'])
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
+
 if __name__ == '__main__':
     unittest.main()
