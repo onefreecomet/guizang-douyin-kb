@@ -83,7 +83,19 @@
 @media(min-width:1500px){.reader{padding-left:64px;padding-right:64px}}@media(max-width:1100px){.split{grid-template-columns:1fr}.kb-layout{grid-template-columns:240px minmax(0,1fr)}.reader{padding:24px}.topbar{gap:16px}.service{display:none}.content{padding:24px}.page-heading{gap:16px}}@media(max-width:760px){.shell{display:block}.sidebar{position:static;height:auto;padding:16px;border-right:0;border-bottom:1px solid var(--line)}.brand{margin:0;font-size:16px;display:flex;align-items:center;gap:12px}.brand-mark{margin:0}.brand small{display:none}.nav{margin-top:16px;grid-template-columns:repeat(3,1fr);gap:4px}.nav button{justify-content:center;gap:8px;padding:4px;font-size:13px}.side-bottom{padding:0;position:absolute;top:16px;right:16px}.side-bottom p{display:none}.side-bottom button{min-height:32px;padding:4px 12px}.topbar{padding:12px 16px;min-height:48px;gap:12px}.dependency{font-size:11px}.dependency b{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.content{padding:24px 16px}.page-heading{flex-direction:column;margin-bottom:24px}h1{font-size:24px}.panel{padding:20px}.run-info{gap:16px}.track{gap:8px}.track li{font-size:12px}.stats{gap:8px}.stat .v{font-size:24px}.field-grid{grid-template-columns:1fr}.kb-layout{grid-template-columns:1fr;min-height:0}.kb-browser{border-right:0;border-bottom:1px solid var(--line)}.kb-list{max-height:240px}.reader{padding:24px 20px;min-height:360px}.queue-item{grid-template-columns:1fr;padding:20px}.queue-item .actions{justify-content:flex-start}.section-head{align-items:flex-start;flex-wrap:wrap}.task-row{grid-template-columns:1fr;gap:8px}.reader-toolbar{align-items:start;flex-direction:column}.run-info{grid-template-columns:1fr}.settings-footer{bottom:0}.markdown{font-size:16px}.track .mono{font-size:11px}}
 @media(max-width:760px){#files-form{flex-wrap:wrap!important}#files-dir{flex-basis:100%}.row>input{min-width:0;flex:1}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
-/* Web Interface Guidelines 审计补充：跳过导航、数字对齐、触控与滚动隔离、标题断行 */.skip-link{position:absolute;left:8px;top:-56px;z-index:60;padding:8px 16px;border:1px solid var(--acc);border-radius:8px;background:var(--surface);color:var(--txt);text-decoration:none;transition:top .15s}.skip-link:focus,.skip-link:focus-visible{top:8px}.stats .v,.progress-meta .mono,#auto-ai,.logbox{font-variant-numeric:tabular-nums}button,a,input,textarea,select,summary{touch-action:manipulation}select{background-color:var(--surface);color:var(--txt)}.logbox,.chat-log,.kb-list,.reader{overscroll-behavior:contain}h1,h2,h3{text-wrap:balance}p,.markdown p,.markdown li,dd{text-wrap:pretty}h1,h2,h3,.page-heading{scroll-margin-top:24px}</style>
+/* Web Interface Guidelines 审计补充：跳过导航、数字对齐、触控与滚动隔离、标题断行 */.skip-link{position:absolute;left:8px;top:-56px;z-index:60;padding:8px 16px;border:1px solid var(--acc);border-radius:8px;background:var(--surface);color:var(--txt);text-decoration:none;transition:top .15s}.skip-link:focus,.skip-link:focus-visible{top:8px}.stats .v,.progress-meta .mono,#auto-ai,.logbox{font-variant-numeric:tabular-nums}button,a,input,textarea,select,summary{touch-action:manipulation}select{background-color:var(--surface);color:var(--txt)}.logbox,.chat-log,.kb-list,.reader{overscroll-behavior:contain}h1,h2,h3{text-wrap:balance}p,.markdown p,.markdown li,dd{text-wrap:pretty}h1,h2,h3,.page-heading{scroll-margin-top:24px}/* 说明页 */
+.help-lead{margin:0;max-width:72ch;color:var(--dim)}
+.help-list{margin:8px 0 0;padding-left:20px;display:grid;gap:8px;color:var(--dim)}
+.help-list b{color:var(--txt);font-weight:500}
+.help-info{margin:10px 0 0;display:grid;gap:14px}
+.help-info div{display:grid;gap:2px}
+.help-info dt{color:var(--txt);font-weight:500}
+.help-info dd{margin:0;color:var(--dim)}
+.faq{margin:0;padding:14px 0;border-top:1px solid var(--line-soft)}
+.faq:first-of-type{padding-top:0;border-top:0}
+.faq summary{cursor:pointer;color:var(--txt);font-weight:500}
+.faq p{margin:8px 0 0;color:var(--dim)}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -96,6 +108,7 @@
     <button data-page="download"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>下载</button>
     <button data-page="files"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V4h7l2 3h9v13H3V7Z"/></svg>文件</button>
     <button data-page="settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg>设置</button>
+    <button data-page="help"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.4 2.4 0 1 1 3.5 2.2c-.7.35-1.1 1-1.1 1.8v.4"/><path d="M12 17.2h.01"/></svg>说明</button>
   </nav>
   <div class="side-bottom"><p>本机服务运行期间，按计划处理收藏<br>笔记保存在你的 Obsidian 中</p><button id="btn-quit" class="quiet danger">退出服务</button></div>
 </aside>
@@ -153,6 +166,30 @@
     <div class="settings-footer"><span class="meta" id="settings-dirty">正在读取配置…</span><button class="primary" id="settings-save" type="submit">保存设置</button></div>
   </form>
 </section>
+<section class="page" id="page-help" aria-labelledby="title-help" hidden>
+  <div class="page-heading"><div><h1 id="title-help">说明</h1><p>这个程序做什么、怎么用、出问题按哪里查</p></div><div class="actions"><button data-go="settings">打开设置</button></div></div>
+  <div class="panel"><h2>它做的事</h2><p class="help-lead">你在手机上把抖音视频收藏到「有帮助」，这台电脑每天定时把新收藏下载下来、转成带时间戳的文字，再整理成笔记写进你的 Obsidian。控制台只管跑流程和看结果，阅读、改写、双链都在 Obsidian 里做。</p>
+    <ol class="track" aria-label="每天自动经过的五步"><li><span class="mono">01</span>扫描收藏</li><li><span class="mono">02</span>下载校验</li><li><span class="mono">03</span>语音转写</li><li><span class="mono">04</span>写入笔记</li><li><span class="mono">05</span>AI 加工</li></ol>
+    <p class="hint">五步全程不用人盯；遇到验证码、限流或失败会停下来并发飞书通知。白天不会自动增量，想立刻跑一次就点「立即同步」。</p></div>
+  <div class="split">
+    <div class="panel"><h2>每天怎么用</h2><ol class="help-list"><li><b>收藏</b>：手机上刷到值得留的视频，存进抖音收藏夹「有帮助」。</li><li><b>等</b>：电脑保持开机联网，到点自动处理，不用打开任何窗口。</li><li><b>读</b>：用 Obsidian 打开「90 - 抖音精选」，先看 <span class="mono">00 - 索引.md</span>，再顺着主题与系列往下读。</li><li><b>写</b>：在笔记的「我的笔记」区写自己的理解，程序永远不动这块。</li></ol></div>
+    <div class="panel"><h2>第一次使用</h2><ol class="help-list"><li>设置页填 <b>下载根目录</b> 与 <b>Cookies 文件路径</b>（用浏览器导出抖音 cookies）。</li><li>填 <b>Obsidian 的 Vault 路径</b>；子目录固定为「90 - 抖音精选」，程序只写这一处。</li><li>填 <b>飞书通知</b> 接收人（open_id 或群 chat_id），点「发送测试通知」确认能收到。</li><li>要用 AI 摘要就填 <b>OpenAI 兼容接口</b> 与密钥，点「测试 AI 连通」；不填也能用，只是笔记停在「待加工」。</li><li>保存后回「自动同步」点一次「立即同步」，先跑通一条，再交给定时。</li></ol><button data-go="settings">去填写设置</button></div>
+  </div>
+  <div class="panel"><h2>每个页面做什么</h2><dl class="help-info"><div><dt>自动同步</dt><dd>当前跑到第几步、下次几点运行；失败与需要人工处理的任务汇总在「需要留意」。</dd></div><div><dt>任务队列</dt><dd>每条收藏的阶段、结果和错误原文；可筛失败项，「重试未完成项」只重跑没完成的。</dd></div><div><dt>知识库</dt><dd>按素材 / 主题 / 系列浏览、搜索全文、只读预览；右侧「问知识库」用 AI 基于你的笔记回答，来源可点击直接打开笔记。</dd></div><div><dt>下载</dt><dd>临时粘链接手动下载，或手动检查收藏夹；日常用它的时候不多。</dd></div><div><dt>文件</dt><dd>看某天目录里究竟存了哪些视频与转写产物。</dd></div><div><dt>设置</dt><dd>外观皮肤、调度与重试、Obsidian 路径、飞书通知、AI 接口与密钥；除密钥外都会回显。</dd></div></dl></div>
+  <div class="split">
+    <div class="panel"><h2>笔记里有什么</h2><ul class="help-list"><li><b>属性</b>：标题、视频 ID、原链接、作者、时长、关键词、主题、系列、AI 摘要与加工时间。</li><li><b>自动区</b>：<span class="mono">&lt;!-- AUTO:START --&gt;</span> 与 <span class="mono">&lt;!-- AUTO:END --&gt;</span> 之间是摘要、要点、带时间戳原文与本地视频链接，重跑时整块重写。</li><li><b>我的笔记</b>：自动区之外的正文，程序从不改写。</li><li><b>已定稿 / 冻结</b>：把 status 改成这两个值，整篇（含自动区）都不再被改写。</li></ul></div>
+    <div class="panel"><h2>东西存在哪</h2><dl class="help-info"><div><dt>视频与转写</dt><dd>下载根目录下的日期目录，例如 <span class="mono">2026-11-13/01_标题</span>，含 mp4、视频信息.txt、语音转文字.txt。</dd></div><div><dt>笔记</dt><dd>Vault 的「90 - 抖音精选」：素材/年-月、主题、系列、00 - 索引.md。</dd></div><div><dt>运行数据</dt><dd>程序目录的 <span class="mono">work/</span>：config.json（配置与密钥）、pipeline.db（队列进度）、knowledge.db（索引缓存，可重建）、watchdog.log。</dd></div></dl></div>
+  </div>
+  <div class="panel"><h2>常见问题</h2>
+    <details class="faq"><summary>抖音弹验证码或提示登录失效怎么办？</summary><p>程序会弹出一个可见的 Edge 窗口等你处理：拖一下滑块或重新扫码登录就好。控制台状态会变成「等待人工验证」并发飞书通知，最多等 180 秒；超时后点「立即同步」重新扫描，已下的视频不会重复下载。</p></details>
+    <details class="faq"><summary>语音转写失败会不会重复花钱？</summary><p>不会。已创建的妙记 token 记在下载目录的 <span class="mono">task_state.json</span>，重试时复用。队列里点「重试未完成项」即可；若飞书侧已确认终态失败，需要人工确认后才会重建妙记。</p></details>
+    <details class="faq"><summary>提示「收藏夹没有扫描完」是什么意思？</summary><p>收藏夹太久没同步、条目太多时，一次滚动扫不全。程序会先把这次扫到的处理掉，下次接着扫；想立刻补齐就再点一次「立即同步」，重复项按视频 ID 自动跳过。</p></details>
+    <details class="faq"><summary>AI 没配置或调用失败会有影响吗？</summary><p>不影响入库。转写原文照常写入，状态停在「待加工」；之后在知识库点「补齐 AI 加工」补摘要、要点、主题与系列即可，已加工的不会重复花钱。</p></details>
+    <details class="faq"><summary>「在 Obsidian 中打开」没反应？</summary><p>需要本机装有 Obsidian 且这个 vault 已加入 Obsidian。链接形如 <span class="mono">obsidian://open?vault=…&amp;file=90%20-…</span>，路径空格会编码成 %20；vault 改过名就去设置里同步改「Vault 路径」。</p></details>
+    <details class="faq"><summary>关掉窗口或退出服务会怎样？</summary><p>关浏览器窗口不影响后台；左下角「退出服务」会真正停掉服务，并让守护进程暂停自动拉起，下次双击桌面快捷方式恢复。开机自启由启动项里的守护进程负责，服务 30–60 秒无响应会自动重启。</p></details>
+    <details class="faq"><summary>会改坏我自己的 Obsidian 笔记吗？</summary><p>程序只写「90 - 抖音精选」这一个子目录，且只改自动区与它负责的 frontmatter 字段；其他笔记不读不写。主题页与索引页同样保留自动区外的手写内容。</p></details>
+  </div>
+</section>
 </main>
 </div>
 </div>
@@ -188,7 +225,7 @@ $$('[data-go]').forEach(b=>b.addEventListener('click',()=>showPage(b.dataset.go)
 bind('#dismiss-error',()=>{$('#global-error').hidden=true;});
 async function loadStatus(){const d=await api('/api/status');[['yt',d.ytdlp],['node',d.node],['lark',d.lark_user]].forEach(([key,value])=>{$('#v-'+key).textContent=value||'不可用';$('#d-'+key).className='dot '+(value&&!String(value).includes('不可用')?'on':'off');});if(!$('#outdir').value)$('#outdir').value=d.default_base||'';if(!$('#cookies').value)$('#cookies').value=d.cookies_path||'';$('#cookie-hint').textContent=d.cookies_exists?'已检测到 Cookies 文件':'未检测到默认 Cookies 文件。请登录抖音并导出 Netscape 格式文件，或填写已有文件路径';$('#service-status').textContent='本机服务已连接';}
 async function loadAiUsage(){const box=$('#auto-ai');if(!box)return;try{const d=await api('/api/ai/usage');if(!d.ai_key_set){box.textContent='未设置密钥，AI 加工未启用';return;}const count=Number(d.count)||0,limit=Number(d.limit)||0,tokens=Number(d.tokens)||0;box.textContent='已用 '+count+' / '+limit+' 次'+(tokens?' · '+tokens+' tokens':'')+(d.date?' · '+d.date:'');}catch(e){box.textContent='用量读取失败';}}
-async function loadAuto(){try{const d=await api('/api/autopilot');state.auto=d;$('#auto-state').textContent=statusLabel(d.state);$('#auto-message').textContent=d.message||'新增收藏会依次完成下载、转写和笔记写入';$('#auto-phase').textContent=statusLabel(d.phase);$('#auto-next').textContent=d.enabled?dateText(d.next_run):'定时同步已关闭';$('#auto-last').textContent=dateText(d.last_run);$('#auto-enabled').textContent=d.enabled?'已启用':'已关闭';$('#auto-dot').className='dot '+(/error|failed/.test(d.state)?'off':d.state==='running'?'on':'');const paused=/paused|manual|blocked|interrupted/.test(d.state||'');$('#auto-toggle').textContent=paused?'继续同步':'暂停同步';$('#auto-toggle').disabled=!paused&&d.state!=='running';$('#auto-run').disabled=['running','stopping','pausing','needs_manual'].includes(d.state);const alert=[d.notification_error?'飞书通知失败：'+d.notification_error:'',d.state==='needs_manual'?((d.message?d.message+'。':'')+'请先在浏览器完成验证。180 秒等待期间，完成验证后会自动继续；等待超时且当前处理线程退出后，再点击“继续同步”'):paused?(d.message||'处理已暂停或中断，可以点击“继续同步”从断点恢复'):''].filter(Boolean).join('；');$('#auto-alert').textContent=alert;$('#auto-alert').hidden=!alert;$$('[data-stage]').forEach(n=>n.classList.toggle('active',d.stage===n.dataset.stage||({scan:/扫描/,download:/下载|校验/,transcribe:/转写/,publish:/写入|发布|写库/,enrich:/加工/}[n.dataset.stage]).test(d.phase||'')));loadAiUsage().catch(()=>{});}catch(e){$('#auto-state').textContent='状态读取失败';$('#auto-message').textContent=e.message;$('#auto-toggle').disabled=true;throw e;}}
+async function loadAuto(){try{const d=await api('/api/autopilot');state.auto=d;$('#auto-state').textContent=statusLabel(d.state);$('#auto-message').textContent=d.message||'新增收藏会依次完成下载、转写和笔记写入';$('#auto-phase').textContent=statusLabel(d.phase);$('#auto-next').textContent=d.enabled?dateText(d.next_run):'定时同步已关闭';$('#auto-last').textContent=dateText(d.last_run);$('#auto-enabled').textContent=d.enabled?'已启用':'已关闭';$('#auto-dot').className='dot '+(/error|failed/.test(d.state)?'off':d.state==='running'?'on':'');const paused=/paused|manual|blocked|interrupted/.test(d.state||'');$('#auto-toggle').textContent=paused?'继续同步':'暂停同步';$('#auto-toggle').disabled=!paused&&d.state!=='running';$('#auto-run').disabled=['running','stopping','pausing','needs_manual'].includes(d.state);const alert=[d.notification_error?'飞书通知失败：'+d.notification_error:'',d.state==='needs_manual'?((d.message?d.message+'。':'')+'请先在浏览器完成验证。180 秒等待期间，完成验证后会自动继续；等待超时且当前处理线程退出后，再点击“继续同步”'):paused?(d.message||'处理已暂停或中断，可以点击“继续同步”从断点恢复'):''].filter(Boolean).join('；');$('#auto-alert').textContent=alert;$('#auto-alert').hidden=!alert;$$('#page-autopilot [data-stage]').forEach(n=>n.classList.toggle('active',d.stage===n.dataset.stage||({scan:/扫描/,download:/下载|校验/,transcribe:/转写/,publish:/写入|发布|写库/,enrich:/加工/}[n.dataset.stage]).test(d.phase||'')));loadAiUsage().catch(()=>{});}catch(e){$('#auto-state').textContent='状态读取失败';$('#auto-message').textContent=e.message;$('#auto-toggle').disabled=true;throw e;}}
 bind('#auto-run',()=>busy($('#auto-run'),async()=>{await post('/api/autopilot/run');await Promise.all([loadAuto(),loadQueue()]);}));
 bind('#auto-toggle',()=>busy($('#auto-toggle'),async()=>{const paused=/paused|manual|blocked|interrupted/.test(state.auto?.state||'');await post('/api/autopilot/'+(paused?'resume':'pause'));await loadAuto();}));
 bind('#auto-refresh',()=>busy($('#auto-refresh'),()=>Promise.all([loadAuto(),loadQueue()])));
