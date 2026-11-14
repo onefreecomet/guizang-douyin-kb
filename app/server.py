@@ -20,9 +20,15 @@ from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent
 SKILL_DIR = APP_DIR.parent
-SCRIPTS = SKILL_DIR / "scripts"
-WORK_DIR = SKILL_DIR / "work"
+try:  # 数据目录统一由 paths 决定（GUIZANG_HOME 可改），拿不到就退回老位置
+    import paths as _paths
+
+    SKILL_DIR = _paths.INSTALL_DIR
+    WORK_DIR = _paths.data_dir()
+except Exception:  # pragma: no cover - 只在 paths 坏掉时走
+    WORK_DIR = SKILL_DIR / "work"
 WORK_DIR.mkdir(parents=True, exist_ok=True)
+SCRIPTS = SKILL_DIR / "scripts"
 # The watchdog respects this marker so "退出服务" is never fought by an auto restart.
 WATCHDOG_PAUSE = WORK_DIR / "watchdog.pause"
 
@@ -683,6 +689,18 @@ class Handler(BaseHTTPRequestHandler):
             icon = APP_DIR / 'icon.ico'
             if icon.exists():
                 return self._send(200, icon.read_bytes(), MIME.get('.ico', 'image/x-icon'))
+            return self._send(404, 'not found', 'text/plain; charset=utf-8')
+        if path in ('/favicon-16.png', '/favicon-32.png', '/apple-touch-icon.png'):
+            asset = APP_DIR / path.lstrip('/')
+            if asset.exists():
+                return self._send(200, asset.read_bytes(), 'image/png')
+            return self._send(404, 'not found', 'text/plain; charset=utf-8')
+        if path.startswith('/assets/'):
+            name = path[len('/assets/'):]
+            if '/' not in name and '\\' not in name and name.endswith('.png'):
+                asset = APP_DIR / 'assets' / name
+                if asset.exists():
+                    return self._send(200, asset.read_bytes(), 'image/png')
             return self._send(404, 'not found', 'text/plain; charset=utf-8')
         if path in ('/api/settings', '/api/autopilot', '/api/queue', '/api/kb/tree', '/api/kb/search', '/api/kb/note',
                     '/api/kb/topics', '/api/kb/topic', '/api/kb/series', '/api/kb/series/note', '/api/ai/usage',

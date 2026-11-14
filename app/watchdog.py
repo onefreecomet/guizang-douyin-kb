@@ -19,7 +19,13 @@ from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent
 SKILL_DIR = APP_DIR.parent
-WORK_DIR = SKILL_DIR / 'work'
+try:  # 数据目录统一由 paths 决定（GUIZANG_HOME 可改），拿不到就退回老位置
+    import paths as _paths
+
+    SKILL_DIR = _paths.INSTALL_DIR
+    WORK_DIR = _paths.data_dir()
+except Exception:  # pragma: no cover - 只在 paths 坏掉时走
+    WORK_DIR = SKILL_DIR / 'work'
 LOG_PATH = WORK_DIR / 'watchdog.log'
 LOCK_PATH = WORK_DIR / 'watchdog.lock'
 PAUSE_PATH = WORK_DIR / 'watchdog.pause'
@@ -29,6 +35,10 @@ DEFAULT_PORT = 8765
 DEFAULT_INTERVAL = 30
 FAILURES_BEFORE_RESTART = 2
 RESTART_GRACE = 20
+# 托盘被杀之后要能自己回来：每 N 轮检查一次（约 10 分钟）
+TRAY_CHECK_TICKS = 20
+# yt-dlp 更新：ytdlp_update 自己按 24 小时节流，这里只是"多久问一次"
+UPDATE_CHECK_TICKS = 60
 
 
 def log(message):
@@ -59,10 +69,37 @@ def probe(port=DEFAULT_PORT, timeout=6):
 
 def server_command(port=DEFAULT_PORT):
     """Prefer pythonw so a restart never flashes a console window."""
-    exe = Path(sys.executable)
-    windowless = exe.with_name('pythonw.exe')
-    launcher = windowless if windowless.exists() else exe
+    try:
+        import paths
+
+        exe = paths.pythonw()
+    except Exception:  # pragma: no cover
+        exe = Path(sys.executable)
+    windowless = Path(exe).with_name('pythonw.exe')
+    launcher = windowless if windowless.exists() else Path(exe)
     return [str(launcher), str(APP_DIR / 'server.py'), '--port', str(port)]
+
+
+def ensure_tray_quietly():
+    """托盘没在跑就拉起来；失败不影响守护本体。"""
+    try:
+        from tray import ensure_tray
+
+        ensure_tray()
+    except Exception:
+        pass
+
+
+def check_ytdlp_update():
+    """检查 yt-dlp 有没有新版（内部 24 小时节流，失败只记一行）。"""
+    try:
+        import ytdlp_update
+
+        result = ytdlp_update.maybe_update()
+        if result.get('updated') or result.get('error'):
+            log('yt-dlp：' + ytdlp_update.render(result))
+    except Exception as exc:  # pragma: no cover
+        log(f'yt-dlp 更新检查异常：{type(exc).__name__}: {exc}')
 
 
 def start_server(port=DEFAULT_PORT):
@@ -120,10 +157,18 @@ def main(argv=None):
         log('已有守护进程在运行，退出')
         return 0
     log(f'守护启动：端口 {port}，检查间隔 {interval} 秒')
+    ensure_tray_quietly()
+    check_ytdlp_update()
     failures, paused = 0, False
+    rounds = 0
     try:
         while True:
             failures, restarted, paused = tick(port, failures, paused)
+            rounds += 1
+            if rounds % TRAY_CHECK_TICKS == 0:
+                ensure_tray_quietly()
+            if rounds % UPDATE_CHECK_TICKS == 0:
+                check_ytdlp_update()
             time.sleep(RESTART_GRACE if restarted else interval)
     except KeyboardInterrupt:
         log('守护收到退出信号')
