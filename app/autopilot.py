@@ -192,7 +192,7 @@ class Autopilot:
                     if any(x.get('terminal') for x in matches):
                         raise ValueError('飞书已确认转写失败，需在下载页明确确认后重建妙记；自动队列不会重复付费创建')
                     for row in matches:
-                        row.update(status='pending', error='')
+                        row.update(status='pending', error='') if row.get('status') != 'ignored' else None
                 self.state.update(state='running', phase='准备同步', message='', last_run=datetime.now(CST).isoformat())
                 if scheduled_day:
                     self.state['last_schedule_day'] = scheduled_day
@@ -213,6 +213,29 @@ class Autopilot:
                 self.stop_current()
         return {'ok': True}
 
+    def ignore(self, video_id=None, all_failed=False):
+        with self.lock:
+            changed = 0
+            for row in self.state['items']:
+                if all_failed:
+                    if row.get('status') != 'error':
+                        continue
+                elif video_id is None or str(row.get('video_id')) != str(video_id):
+                    continue
+                row.update(status='ignored', phase='ignored', error=row.get('error') or '')
+                changed += 1
+            if changed:
+                self._save()
+            return {'ignored': changed}
+
+    def clear_history(self):
+        with self.lock:
+            keep = [row for row in self.state['items'] if row.get('status') not in ('done', 'ignored')]
+            removed = len(self.state['items']) - len(keep)
+            self.state['items'] = keep
+            if removed:
+                self._save()
+            return {'removed': removed}
     def _row_update(self, row, **fields):
         with self.lock:
             row.update(fields)

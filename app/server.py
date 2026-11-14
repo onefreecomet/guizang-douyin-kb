@@ -213,6 +213,58 @@ def local_downloaded_ids(base: Path) -> set:
     return downloaded_ids(base)
 
 
+NOT_FOUND_HTML = """<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>页面不存在 · 归藏</title>
+<style>
+:root{color-scheme:light}
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f5f6f6;color:#202629;
+font:14px/1.7 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+main{max-width:420px;padding:32px}
+p.mono{margin:0;font-family:ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.12em;
+text-transform:uppercase;color:#5c666b}
+h1{margin:8px 0 12px;font-size:30px;font-weight:500;letter-spacing:-.01em}
+p.hint{margin:0 0 24px;color:#5c666b}
+a{display:inline-block;padding:12px 16px;border-radius:8px;background:#17665f;color:#fff;
+text-decoration:none;font-weight:500}
+a:focus-visible{outline:3px solid #9ebbb4;outline-offset:3px}
+</style></head>
+<body><main>
+<p class="mono">404</p>
+<h1>这个地址没有东西</h1>
+<p class="hint">链接可能过期了。回控制台看看今天的同步结果。</p>
+<a href="/">回到控制台</a>
+</main></body></html>"""
+
+
+def preflight(config=None):
+    """首次使用检查清单：只读判断关键配置是否到位，不改任何东西。"""
+    cfg = config or get_settings().get()
+    items = []
+
+    def add(key, label, page, ok, value, hint):
+        items.append({'key': key, 'label': label, 'page': page,
+                      'ok': bool(ok), 'value': value, 'hint': hint})
+
+    cookies = Path(str(cfg.get('cookies') or ''))
+    add('cookies', '抖音 cookies', 'download', cookies.is_file(), str(cookies),
+        '在下载页点「导出 cookies」，或把 cookies.txt 放到这里')
+    vault = Path(str(cfg.get('vault_path') or ''))
+    add('vault', '知识库路径', 'settings', vault.is_dir(), str(vault),
+        '在设置里填写 Obsidian vault 目录')
+    base = Path(str(cfg.get('base_dir') or ''))
+    add('base', '下载目录', 'settings', base.is_dir(), str(base),
+        '在设置里指定视频保存目录')
+    receiver = str(cfg.get('notify_receive_id') or '').strip()
+    add('notify', '飞书接收人', 'settings', bool(receiver), receiver,
+        '不想收通知可以留空；需要时填 open_id')
+    key_set = bool(str(cfg.get('ai_api_key') or '').strip())
+    add('ai', 'AI 密钥', 'settings', key_set, '已保存' if key_set else '',
+        '留空也能跑，笔记会停在「待加工」')
+    return {'items': items, 'missing': [item['key'] for item in items if not item['ok']]}
+
+
 def deps_status(config=None):
     cfg = config or get_settings().get()
     base = Path(cfg.get("base_dir") or DEFAULT_BASE)
@@ -627,8 +679,14 @@ class Handler(BaseHTTPRequestHandler):
             # Cheap liveness probe for the watchdog; never touches the pipeline.
             return self._json({'ok': True, 'pid': os.getpid(),
                                'state': (AUTO.state['state'] if AUTO else 'starting')})
+        if path in ('/favicon.ico', '/icon.ico'):
+            icon = APP_DIR / 'icon.ico'
+            if icon.exists():
+                return self._send(200, icon.read_bytes(), MIME.get('.ico', 'image/x-icon'))
+            return self._send(404, 'not found', 'text/plain; charset=utf-8')
         if path in ('/api/settings', '/api/autopilot', '/api/queue', '/api/kb/tree', '/api/kb/search', '/api/kb/note',
-                    '/api/kb/topics', '/api/kb/topic', '/api/kb/series', '/api/kb/series/note', '/api/ai/usage'):
+                    '/api/kb/topics', '/api/kb/topic', '/api/kb/series', '/api/kb/series/note', '/api/ai/usage',
+                    '/api/stats', '/api/preflight'):
             try:
                 q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
                 if path == '/api/settings':
@@ -638,7 +696,23 @@ class Handler(BaseHTTPRequestHandler):
                     snap.pop('items', None)
                     return self._json(snap)
                 if path == '/api/queue':
-                    return self._json({'items': get_autopilot().snapshot()['items']})
+                    items = get_autopilot().snapshot()['items']
+                    view = (q.get('view') or [''])[0]
+                    if view == 'history':
+                        items = [row for row in items if row.get('status') in ('done', 'ignored')]
+                    elif view == 'active':
+                        items = [row for row in items if row.get('status') not in ('done', 'ignored')]
+                    return self._json({'items': items, 'view': view or 'all'})
+                if path == '/api/preflight':
+                    return self._json(preflight(get_settings().get()))
+                if path == '/api/stats':
+                    out = knowledge_base().stats()
+                    usage = dict(get_enricher().usage())
+                    out['ai'] = {'date': usage.get('date'), 'count': usage.get('count', 0),
+                                 'tokens': usage.get('tokens', 0),
+                                 'limit': usage.get('limit', 200),
+                                 'history': get_enricher().history()}
+                    return self._json(out)
                 if path == '/api/ai/usage':
                     usage = dict(get_enricher().usage())
                     config = get_settings().get()
@@ -729,7 +803,7 @@ class Handler(BaseHTTPRequestHandler):
                     })
             return self._json({"dir": str(d), "items": out})
 
-        return self._send(404, "not found", "text/plain; charset=utf-8")
+        return self._send(404, NOT_FOUND_HTML, MIME['.html'])
 
     def do_POST(self):
         # Consume a bounded body before a rejection, avoiding HTTP/1.1 unread-body
@@ -745,7 +819,7 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(data, dict):
             return self._json({'ok': False, 'error': '请求必须是 JSON 对象'}, 400)
         if path in ('/api/settings', '/api/autopilot/run', '/api/autopilot/pause', '/api/autopilot/resume',
-                    '/api/queue/retry', '/api/kb/reindex', '/api/notify/test', '/api/kb/refresh',
+                    '/api/queue/retry', '/api/queue/ignore', '/api/queue/clear', '/api/kb/reindex', '/api/notify/test', '/api/kb/refresh',
                     '/api/kb/topic/merge', '/api/kb/enrich', '/api/ai/test', '/api/chat'):
             try:
                 if path == '/api/settings':
@@ -767,6 +841,11 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json(dict(knowledge_base().merge_topics(source, target), ok=True))
                 if path == '/api/kb/enrich':
                     return self._json(dict(enrich_missing(get_settings().get(), data.get('video_id')), ok=True))
+                if path == '/api/queue/ignore':
+                    return self._json(dict(get_autopilot().ignore(
+                        data.get('video_id'), bool(data.get('all_failed'))), ok=True))
+                if path == '/api/queue/clear':
+                    return self._json(dict(get_autopilot().clear_history(), ok=True))
                 if path == '/api/ai/test':
                     return self._json(ai_probe(get_settings().get(), data.get('ai_api_key')))
                 if path == '/api/chat':
@@ -903,7 +982,7 @@ class Handler(BaseHTTPRequestHandler):
             threading.Thread(target=shutdown_server, args=(self.server,), daemon=True).start()
             return
 
-        return self._send(404, "not found", "text/plain; charset=utf-8")
+        return self._send(404, NOT_FOUND_HTML, MIME['.html'])
 
 
 def main():

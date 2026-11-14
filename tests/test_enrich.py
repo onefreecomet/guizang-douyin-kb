@@ -453,7 +453,11 @@ class RequestTests(EnricherCase):
         self.assertIn('已有主题', user)
         self.assertEqual(self.enricher.usage(),
                          {'date': TODAY, 'count': 1, 'limit': 200, 'tokens': 321})
-        self.assertEqual(self.ledger(), {'date': TODAY, 'count': 1, 'tokens': 321, 'limit': 200})
+        ledger = self.ledger()
+        self.assertEqual({k: ledger[k] for k in ('date', 'count', 'tokens', 'limit')},
+                         {'date': TODAY, 'count': 1, 'tokens': 321, 'limit': 200})
+        self.assertEqual(ledger['history'][TODAY], {'count': 1, 'tokens': 321})
+        self.assertEqual(self.enricher.history(), {TODAY: {'count': 1, 'tokens': 321}})
         self.assertNotIn(KEY, (self.work / LEDGER).read_text(encoding='utf-8'))
         self.assertEqual(list(self.work.glob('*.tmp')), [])
 

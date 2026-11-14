@@ -714,6 +714,30 @@ class KnowledgeBase:
         return {'notes': len(members), 'topics': len(topics), 'series': len(series),
                 'pages': written}
 
+    def stats(self):
+        """Aggregate counts for the console stats panel (read only)."""
+        with self._guard():
+            members = self._members()
+        topics, months, statuses, series = {}, {}, {}, set()
+        for member in members:
+            for name in member['topics']:
+                topics[name] = topics.get(name, 0) + 1
+            if member.get('series'):
+                series.add(member['series'])
+            month = str(member.get('saved_at') or '')[:7]
+            if len(month) == 7:
+                months[month] = months.get(month, 0) + 1
+            status = str(member.get('status') or '未标注')
+            statuses[status] = statuses.get(status, 0) + 1
+        top = sorted(topics.items(), key=lambda pair: (-pair[1], pair[0]))[:8]
+        return {
+            'notes': len(members),
+            'topics': len(topics),
+            'series': len(series),
+            'months': [{'month': m, 'count': c} for m, c in sorted(months.items())[-12:]],
+            'top_topics': [{'name': n, 'count': c} for n, c in top],
+            'statuses': statuses,
+        }
     def topic_names(self) -> list:
         with self._guard():
             names = {name for member in self._members() for name in member['topics']}

@@ -377,6 +377,25 @@ class Enricher:
     def _save(self, ledger):
         _atomic_text(self.path, json.dumps(ledger, ensure_ascii=False, indent=2))
 
+    def history(self):
+        """近 14 天每天的次数与 token 数，供控制台画用量图。"""
+        with self.lock:
+            data = {}
+            try:
+                if self.path.is_file():
+                    loaded = json.loads(self.path.read_text(encoding='utf-8'))
+                    if isinstance(loaded, dict):
+                        data = loaded
+            except (OSError, ValueError):
+                data = {}
+            return self._history(data)
+
+    @staticmethod
+    def _history(ledger):
+        history = ledger.get('history') if isinstance(ledger, dict) else None
+        if not isinstance(history, dict):
+            return {}
+        return {day: history[day] for day in sorted(history)[-14:]}
     def usage(self):
         with self.lock:
             ledger = self._load()
@@ -469,6 +488,10 @@ class Enricher:
         with self.lock:
             ledger = self._load()
             ledger.update(count=ledger['count'] + 1, tokens=ledger['tokens'] + tokens, limit=limit)
+            history = ledger.setdefault('history', {})
+            entry = history.setdefault(ledger['date'], {'count': 0, 'tokens': 0})
+            entry['count'] += 1
+            entry['tokens'] += tokens
             try:
                 self._save(ledger)
             except OSError:
@@ -494,6 +517,10 @@ class Enricher:
         with self.lock:
             ledger = self._load()
             ledger.update(count=ledger['count'] + 1, tokens=ledger['tokens'] + tokens, limit=limit)
+            history = ledger.setdefault('history', {})
+            entry = history.setdefault(ledger['date'], {'count': 0, 'tokens': 0})
+            entry['count'] += 1
+            entry['tokens'] += tokens
             try:
                 self._save(ledger)
             except OSError:
