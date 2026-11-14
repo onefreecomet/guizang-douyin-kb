@@ -10,7 +10,10 @@
 <meta property="og:title" content="归藏 · 抖音收藏知识库">
 <meta property="og:description" content="手机收藏，电脑自动整理成本地知识库。视频不离开这台电脑。">
 <link rel="icon" href="/favicon.ico" sizes="any">
-<script>/* 首屏前先套用上次的皮肤，避免深色皮肤闪成白色 */try{var s=localStorage.getItem("dsh-skin");if(s==="paper"||s==="ink"||s==="warm"){document.documentElement.dataset.skin=s;var c={paper:"#f5f6f6",ink:"#14181a",warm:"#f4ecdf"}[s];if(c)document.getElementById("theme-color").setAttribute("content",c);}}catch(e){}</script>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script>/* 首屏前先套用上次的皮肤，避免深色皮肤闪成白色 */try{var s=localStorage.getItem("dsh-skin");if(s==="paper"||s==="ink"||s==="warm"){document.documentElement.dataset.skin=s;var c={paper:"#F6F5F2",ink:"#14181a",warm:"#f4ecdf"}[s];if(c)document.getElementById("theme-color").setAttribute("content",c);}}catch(e){}</script>
 <!-- Interface craft informed by Unslop, Damir Sokolovsky (@heydamir), CC BY 4.0. -->
 <style>:root{color-scheme:light;--bg:#f5f6f6;--surface:#fff;--sidebar:#f0f2f1;--panel:#fafbfa;--sunken:#f3f5f4;--raised:#edf0ef;--line:#dce1e0;--line-strong:#cbd3d1;--line-soft:#d1e1dc;--line-hover:#b9c4c1;--hint-line:#cbd6d2;--th-bg:#f4f6f5;--props-bg:#f7f8f7;--log-bg:#f6f7f6;--txt:#202629;--dim:#5c666b;--muted:#697477;--acc:#17665f;--acc-strong:#10534d;--acc-ring:#428c83;--acc-line:#9ebbb4;--soft:#e6efed;--mark:#e2eee8;--quote-bg:#f4f7f5;--quote-line:#b7cdc6;--quote-txt:#465b53;--ok:#226347;--ok-bg:#eaf3ed;--ok-banner:#edf5ef;--ok-line:#bed7c7;--warn:#805f20;--warn-bg:#f8f2e5;--warn-banner:#fbf6e9;--warn-line:#dfc98f;--warn-txt:#70531b;--err:#a73838;--err-bg:#faeeee;--err-banner:#fbefef;--err-line:#e0bcbc;--dot:#8b9492;--on-acc:#fff;--on-acc:#0e1516;--on-acc:#fff;--radius:12px}[data-skin="ink"]{color-scheme:dark;--bg:#14181a;--surface:#1b2023;--sidebar:#171c1e;--panel:#1b2124;--sunken:#1a2023;--raised:#232a2d;--line:#2c3539;--line-strong:#39454a;--line-soft:#33544f;--line-hover:#3d4a4b;--hint-line:#2f4045;--th-bg:#1d2427;--props-bg:#1a2023;--log-bg:#171d20;--txt:#e6ecea;--dim:#a3b0ae;--muted:#8d9a98;--acc:#4fb3a4;--acc-strong:#3f9487;--acc-ring:#5fc4b4;--acc-line:#4a7a72;--soft:#1f2f2c;--mark:#24413c;--quote-bg:#1c2426;--quote-line:#3f6a63;--quote-txt:#c8d6d3;--ok:#6fbf95;--ok-bg:#1c2b23;--ok-banner:#1a2a22;--ok-line:#2f4a3a;--warn:#d8b169;--warn-bg:#2a2519;--warn-banner:#262013;--warn-line:#4a3f22;--warn-txt:#e0c084;--err:#e08a8a;--err-bg:#2b1d1d;--err-banner:#2a1a1a;--err-line:#4a2c2c;--dot:#5a6664;--radius:12px}[data-skin="warm"]{color-scheme:light;--bg:#f4ecdf;--surface:#fdf9f0;--sidebar:#efe5d3;--panel:#faf4e7;--sunken:#f6efe0;--raised:#eadfcc;--line:#dccbb1;--line-strong:#cbb79a;--line-soft:#e0cdb2;--line-hover:#c2ab8b;--hint-line:#dcc9a8;--th-bg:#f6efe0;--props-bg:#f8f2e4;--log-bg:#f7f1e4;--txt:#2c2318;--dim:#6b5b45;--muted:#7a6a52;--acc:#8a4b25;--acc-strong:#6e3a1c;--acc-ring:#b06a3c;--acc-line:#c39a76;--soft:#f0e2cc;--mark:#f0e0c2;--quote-bg:#f7efdd;--quote-line:#d3b892;--quote-txt:#5a462c;--ok:#4f6b3a;--ok-bg:#ecefdc;--ok-banner:#eef2e0;--ok-line:#cfd9b4;--warn:#7d5a1c;--warn-bg:#f7ecd4;--warn-banner:#f9efd8;--warn-line:#e3cd9d;--warn-txt:#6b4c15;--err:#9a3a2c;--err-bg:#f7e3dd;--err-banner:#fae8e2;--err-line:#e6c2b8;--dot:#a08f74;--radius:12px}
 .skin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
@@ -259,11 +262,190 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
 #note-copy{min-height:24px;padding:0 2px;color:var(--acc);font-size:12px}
 @media(prefers-reduced-motion:reduce){.page:not([hidden]){animation:none!important}#p8-toast{transition:none!important}}
 </style>
+<style id="brand-v2">
+/* ==========================================================================
+   归藏 · 视觉语言 v2「纸本 · 朱墨」  2026-11-14
+   宗旨：把界面从「工具软件」调成「一册纸本账册」——
+   纸白打底、墨黑立骨、朱砂只用在「当前该动的地方」。
+   本层只覆盖变量与观感，不动任何结构与脚本。
+   ========================================================================== */
+
+/* ① 纸白（默认）—— 主色取自定稿 logo：纸 #F5F6F6 / 墨 #1C1F23 / 朱砂 #B4472E */
+:root{
+  color-scheme:light;
+  --bg:#F6F5F2;--surface:#FFFFFF;--sidebar:#EFEDE7;--panel:#FBFAF7;--sunken:#F0EEE8;--raised:#E9E6DE;
+  --line:#E2DFD7;--line-strong:#CFCABF;--line-soft:#E7DFD5;--line-hover:#B7B1A4;--hint-line:#D7D1C4;
+  --th-bg:#F4F2EC;--props-bg:#F8F6F1;--log-bg:#F7F5F0;
+  --txt:#1C1F23;--dim:#565B5F;--muted:#6C7075;
+  --acc:#1C1F23;--acc-strong:#0B0D0F;--acc-ring:#6E737A;--acc-line:#C9C4B9;--soft:#EDEBE5;--mark:#E8E4DA;
+  --quote-bg:#F8F3EE;--quote-line:#DDC3B4;--quote-txt:#5A4034;
+  --ok:#2D6B4E;--ok-bg:#EBF2EC;--ok-banner:#EEF4EF;--ok-line:#C3D6C9;
+  --warn:#7E5C1D;--warn-bg:#F8F2E3;--warn-banner:#FBF6E7;--warn-line:#DFC98C;--warn-txt:#6E531A;
+  --err:#9C3324;--err-bg:#FBEDE9;--err-banner:#FCEEE9;--err-line:#E2BFAF;
+  --dot:#8B918E;--on-acc:#FFFFFF;--radius:14px;--cyan:#12A9A9;
+}
+
+/* ② 夜色 —— 墨底、纸字，朱砂提亮但不刺眼 */
+[data-skin="ink"]{
+  color-scheme:dark;
+  --bg:#14181A;--surface:#1B2023;--sidebar:#171C1E;--panel:#1A1F22;--sunken:#191E21;--raised:#232A2D;
+  --line:#2B3336;--line-strong:#3A4448;--line-soft:#3E3A36;--line-hover:#4A5457;--hint-line:#333B3E;
+  --th-bg:#1D2427;--props-bg:#191F22;--log-bg:#161B1E;
+  --txt:#E9E6DF;--dim:#A6A9A6;--muted:#8D918E;
+  --acc:#77B4AB;--acc-strong:#8CC4BA;--acc-ring:#9DD0C7;--acc-line:#33544F;--soft:#1D2A28;--mark:#213330;
+  --quote-bg:#1C2225;--quote-line:#3A5A55;--quote-txt:#DCCFC7;
+  --ok:#6FB48C;--ok-bg:#1C2B23;--ok-banner:#1A2A22;--ok-line:#2F4A3A;
+  --warn:#D9B166;--warn-bg:#2A2519;--warn-banner:#262013;--warn-line:#4A3F22;--warn-txt:#E0C084;
+  --err:#E08A7A;--err-bg:#2B1E1B;--err-banner:#2A1C19;--err-line:#4A302C;
+  --dot:#5F6764;--on-acc:#0E1A18;--radius:14px;--cyan:#2FC4C4;
+}
+
+/* ③ 暖纸 —— 旧纸、焦墨 */
+[data-skin="warm"]{
+  color-scheme:light;
+  --bg:#F3EADC;--surface:#FCF8EE;--sidebar:#EDE2CE;--panel:#F9F3E4;--sunken:#F5EDDC;--raised:#E8DCC6;
+  --line:#DCCCB0;--line-strong:#CAB694;--line-soft:#E2D0B2;--line-hover:#C0A882;--hint-line:#DBC8A5;
+  --th-bg:#F5EDDC;--props-bg:#F7F0E0;--log-bg:#F6EFDE;
+  --txt:#2B2318;--dim:#6A5B45;--muted:#7A6A52;
+  --acc:#A9482C;--acc-strong:#8A381F;--acc-ring:#C36F52;--acc-line:#D3A48D;--soft:#F1E0D3;--mark:#F2DFCF;
+  --quote-bg:#F7EFDD;--quote-line:#D2B69A;--quote-txt:#5A4632;
+  --ok:#3A6B4A;--ok-bg:#EDF2E6;--ok-banner:#F0F4E9;--ok-line:#CFD8BC;
+  --warn:#7E5C1D;--warn-bg:#F8F0DC;--warn-banner:#FAF4E2;--warn-line:#DCC48D;--warn-txt:#6E531A;
+  --err:#9C3324;--err-bg:#F7E8E2;--err-banner:#F9EAE4;--err-line:#DDBBA9;
+  --dot:#8B8375;--on-acc:#FFFFFF;--radius:14px;--cyan:#0E9C9C;
+}
+
+/* ④ 纸面质感：一层极淡的纤维噪点，只在浅色皮肤里给一点「纸」的颗粒 */
+body{
+  background-color:var(--bg);
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)' opacity='0.05'/%3E%3C/svg%3E");
+  background-attachment:fixed;
+  font-family:"PingFang SC","HarmonyOS Sans SC","Source Han Sans SC","Microsoft YaHei UI","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+[data-skin="ink"] body{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23p)' opacity='0.035' fill='%23fff'/%3E%3C/svg%3E")}
+
+/* ⑤ 标题走宋体：纸本的气质全在标题的衬线上 */
+h1,h2,h3,.brand>div,.page-heading h1,.state-heading h2,.help-sec-head h2,
+.chat-head h2,.section-head h2,.skin-name{
+  font-family:"Noto Serif SC","Songti SC","Source Han Serif SC",STSong,SimSun,Georgia,serif;
+  font-weight:600;
+  letter-spacing:.012em;
+}
+h1{font-size:32px;line-height:1.35}
+h2{font-size:18px}
+.page-heading{padding-bottom:20px;border-bottom:1px solid var(--line)}
+.page-heading p{color:var(--dim);margin-bottom:0}
+
+/* ⑥ 侧栏：留白更松，选中项压纸色并挂一道朱砂 */
+.sidebar{padding:28px 18px 18px}
+.brand{display:block;margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.brand-logo{display:block;height:44px;width:auto;margin:0 0 10px}
+.brand small{
+  display:block;
+  font-family:"PingFang SC","Microsoft YaHei UI",system-ui,sans-serif;
+  font-size:11.5px;font-weight:400;letter-spacing:.02em;line-height:1.5;color:var(--muted);
+}
+.brand>div{font-size:19px;font-weight:600;letter-spacing:.06em;line-height:1.2}
+.brand small{
+  display:block;margin-top:4px;
+  font-family:"PingFang SC","Microsoft YaHei UI",system-ui,sans-serif;
+  font-size:11.5px;font-weight:400;letter-spacing:.02em;color:var(--muted);
+}
+.nav{gap:2px}
+.nav button{position:relative;border:0;background:transparent;color:var(--dim);font-weight:500;padding-left:15px}
+.nav button:hover:not(:disabled){background:var(--raised);color:var(--txt);border:0}
+.nav button[aria-current="page"]{background:var(--surface);color:var(--txt);box-shadow:inset 0 0 0 1px var(--line)}
+.nav button[aria-current="page"]::before{
+  content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;
+  border-radius:0 2px 2px 0;background:var(--acc);
+}
+.nav button[aria-current="page"] .icon{color:var(--acc)}
+
+/* ⑦ 面板与按钮：只留一线，不加阴影戏法 */
+.panel{background:var(--surface);border-color:var(--line);border-radius:var(--radius);box-shadow:0 1px 2px rgba(28,31,35,.03)}
+button{border-radius:9px}
+button.primary{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+button.primary:hover:not(:disabled){background:var(--acc-strong);border-color:var(--acc-strong)}
+.topbar{background:var(--bg);backdrop-filter:saturate(120%)}
+
+/* ⑧ 数字也用宋体衬线，读起来像账册上的数目 */
+.stats .v,.stat .v{font-family:"Noto Serif SC","Songti SC",SimSun,serif;font-weight:600;letter-spacing:.01em}
+h1 .mono,.page-heading .mono{font-family:ui-monospace,Consolas,monospace}
+
+/* ⑨ 设置页的皮肤小样，换成新三色 */
+.skin-swatch[data-skin=paper]{--sw-bg:#F6F5F2;--sw-acc:#1C1F23}
+.skin-swatch[data-skin=ink]{--sw-bg:#14181A;--sw-acc:#77B4AB}
+.skin-swatch[data-skin=warm]{--sw-bg:#F3EADC;--sw-acc:#A9482C}
+.skin-card[aria-pressed=true]{border-color:var(--acc);box-shadow:0 0 0 3px var(--soft)}
+
+/* ⑩ 焦点环与选中态统一到朱砂 */
+:focus-visible{outline:3px solid var(--acc-ring);outline-offset:3px}
+::selection{background:var(--mark);color:var(--txt)}
+
+/* ⑪ 纸本骨骼：版心双线、卡片标题刻线、数字字号 --------------------------- */
+.page-heading{
+  position:relative;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--line-strong);
+}
+.page-heading::after{
+  content:"";position:absolute;left:0;right:0;bottom:5px;height:1px;
+  background:var(--line);
+}
+.panel>h2,.section-head h2,.help-sec-head h2{
+  display:flex;align-items:center;gap:9px;
+}
+.panel>h2::before,.section-head h2::before,.help-sec-head h2::before{
+  content:"";flex:none;width:3px;height:1em;border-radius:1px;
+  background:var(--acc);opacity:.9;
+}
+.stats .v,.stat .v{font-size:30px;line-height:1.15}
+.stats .k,.stat .k{letter-spacing:.06em}
+table thead th{letter-spacing:.06em}
+.dim,.meta{letter-spacing:.01em}
+
+/* ⑫ 空状态线描插画：SVG 当 mask，描边颜色跟着皮肤的线色走 ---------------- */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;text-align:center;padding:30px 12px 26px;
+}
+.empty::before{
+  content:"";display:block;width:88px;height:88px;margin-bottom:10px;
+  background:var(--line-hover);opacity:.85;
+  -webkit-mask:var(--empty-art) center/contain no-repeat;
+  mask:var(--empty-art) center/contain no-repeat;
+}
+.empty h3{font-size:15px;font-weight:600;color:var(--txt)}
+.empty p{max-width:34em;color:var(--muted);line-height:1.7}
+
+.empty{--empty-art:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'> <path d='M36 30h48v60H36z'/> <path d='M28 24h64'/> <path d='M28 96h64'/> <path d='M46 48h28'/> <path d='M46 60h28'/> <path d='M46 72h16'/> </svg>")}
+#auto-attention .empty{--empty-art:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'> <path d='M74 40h20v9H74z' fill='none'/> <path d='M26 56h68v34a4 4 0 0 1-4 4H30a4 4 0 0 1-4-4z'/> <path d='M20 44h80v12H20z'/> <path d='M18 44l14-12h56l14 12'/> <path d='M50 70h20'/> </svg>")}
+#queue-list .empty{--empty-art:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'> <path d='M84 24l14 14-40 40-18 4 4-18z'/> <path d='M44 82l-10 16'/> <path d='M60 88h32'/> </svg>")}
+#kb-results .empty,.reader .empty,.kb-browser .empty{--empty-art:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'> <path d='M28 28h28v64H28z'/> <path d='M64 28h28v64H64z'/> <path d='M56 34v52'/> <path d='M36 44h12'/> <path d='M72 44h12'/> </svg>")}
+#chat-log .empty{--empty-art:url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'> <path d='M34 26v68'/> <path d='M47 26v68'/> <path d='M60 26v68'/> <path d='M73 26v68'/> <path d='M86 26v68'/> <path d='M30 44h60'/> <path d='M30 76h60'/> </svg>")}
+[data-skin="ink"] .empty::before{background:#5E6B6D}
+.p7-empty{padding:18px 0}
+
+/* ⑬ 作者署名：侧栏常驻一行 + 说明页版权页 */
+.side-by{display:block;margin-top:14px;font-size:11px;letter-spacing:.09em;color:var(--dim);text-decoration:none;opacity:.72;transition:opacity .15s,color .15s}
+.side-by:hover,.side-by:focus-visible{opacity:1;color:var(--txt)}
+.about-card{margin-top:10px;padding:40px 32px 34px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);text-align:center}
+.about-kicker{margin:0 0 12px;font-size:11px;letter-spacing:.30em;color:var(--dim)}
+.about-by{margin:0 0 24px;font-family:"Noto Serif SC","Songti SC",STSong,SimSun,serif;font-size:34px;font-weight:600;letter-spacing:.12em;color:var(--txt)}
+.about-lede{margin:0 auto 28px;max-width:28em;font-family:"Noto Serif SC","Songti SC",STSong,SimSun,serif;font-size:16px;line-height:1.95;color:var(--txt)}
+.about-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px 20px;max-width:620px;margin:0 auto;padding-top:24px;border-top:1px solid var(--line);text-align:left}
+.about-meta>div{display:flex;flex-direction:column;gap:5px}
+.about-meta dt{margin:0;font-size:10.5px;letter-spacing:.16em;color:var(--dim)}
+.about-meta dd{margin:0;font-size:13px;line-height:1.5;color:var(--txt)}
+.about-sign{margin:26px 0 0;font-size:12px;letter-spacing:.08em;color:var(--dim)}
+[data-skin="ink"] .about-card{background:var(--surface)}
+</style>
 </head>
 <body>
 <div class="shell">
 <aside class="sidebar" aria-label="主导航">
-  <div class="brand"><span class="brand-mark" aria-hidden="true">藏</span><div>归藏<small>抖音收藏知识库 · 从收藏，到自己的资料库</small></div></div>
+  <div class="brand"><img class="brand-logo" src="/assets/logo-wordmark.png" alt="归藏" width="302" height="176"><small>抖音收藏知识库 · 从收藏，到自己的资料库</small></div>
   <nav class="nav">
     <button data-page="autopilot" aria-current="page"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1"/></svg>自动同步</button>
     <button data-page="queue"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/></svg>任务队列</button>
@@ -273,7 +455,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
     <button data-page="settings"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6m8 0v6m-6 0v6"/></svg>设置</button>
     <button data-page="help"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.4 2.4 0 1 1 3.5 2.2c-.7.35-1.1 1-1.1 1.8v.4"/><path d="M12 17.2h.01"/></svg>说明</button>
   </nav>
-  <div class="side-bottom"><p>本机服务运行期间，按计划处理收藏<br>笔记保存在你的 Obsidian 中</p><button id="btn-quit" class="quiet danger">退出服务</button></div>
+  <div class="side-bottom"><p>本机服务运行期间，按计划处理收藏<br>笔记保存在你的 Obsidian 中</p><button id="btn-quit" class="quiet danger">退出服务</button><a class="side-by" href="#help-author" title="关于作者 冰临城下">by 冰临城下</a></div>
 </aside>
 <div class="workspace">
 <header class="topbar" aria-label="运行环境">
@@ -349,6 +531,7 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
       <a href="#help-note">笔记里有什么</a>
       <a href="#help-files">东西存在哪</a>
       <a href="#help-faq">常见问题</a>
+      <a href="#help-author">关于</a>
     </nav>
     <div class="help-body">
       <section class="help-sec" id="help-about" tabindex="-1" aria-labelledby="h-about">
@@ -485,9 +668,24 @@ input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;bor
         <details class="faq"><summary>抖音弹验证码或提示登录失效怎么办？</summary><p>程序会弹出一个可见的 Edge 窗口等你处理：拖一下滑块或重新扫码登录就好。控制台状态会变成「等待人工验证」并发飞书通知，最多等 180 秒；超时后点「立即同步」重新扫描，已下的视频不会重复下载。</p></details>
         <details class="faq"><summary>语音转写失败会不会重复花钱？</summary><p>不会。已创建的妙记 token 记在下载目录的 <span class="mono">task_state.json</span>，重试时复用。队列里点「重试未完成项」即可；若飞书侧已确认终态失败，需要人工确认后才会重建妙记。</p></details>
       </section>
+      <section class="help-sec" id="help-author" tabindex="-1" aria-labelledby="h-author">
+        <div class="help-sec-head"><span class="mono">08</span><h2 id="h-author">关于</h2></div>
+        <div class="about-card">
+          <p class="about-kicker">作 者</p>
+          <p class="about-by">冰临城下</p>
+          <p class="about-lede">归藏是一个人做的小工具：把散落在手机里的收藏，归回来，藏成自己的一册纸本。</p>
+          <dl class="about-meta">
+            <div><dt>作者</dt><dd>冰临城下</dd></div>
+            <div><dt>版本</dt><dd class="mono">2026-11</dd></div>
+            <div><dt>形态</dt><dd>本机运行 · 不上传云端</dd></div>
+            <div><dt>皮肤</dt><dd>纸白 · 夜色 · 暖纸</dd></div>
+          </dl>
+          <p class="about-sign">— 冰临城下，2026 年 11 月</p>
+        </div>
+      </section>
     </div>
   </div>
-  <p class="help-colophon mono">归藏 · 抖音收藏知识库 · 说明书 2026-11 版 · 本机运行，笔记存在你自己的 Obsidian 里</p>
+  <p class="help-colophon mono">归藏 · 抖音收藏知识库 · 说明书 2026-11 版 · 本机运行，笔记存在你自己的 Obsidian 里 · by 冰临城下</p>
 </section>
 </main>
 </div>
@@ -876,6 +1074,24 @@ async function refreshAuto(){if(state.exiting)return;await Promise.allSettled([l
 const statusInterval=setInterval(()=>{if(!state.exiting)loadStatus().catch(e=>{$('#service-status').textContent='连接异常';report(e);});},30000);
 Promise.allSettled([loadStatus(),loadUsage(),loadTree(),loadSettings()]).then(results=>{results.filter(r=>r.status==='rejected').forEach(r=>report(r.reason));});
 poll();refreshAuto();
+</script>
+<script id="about-deeplink">
+(function(){
+  function jump(){
+    var h=decodeURIComponent(location.hash.slice(1));
+    if(h!=='about'&&h.indexOf('help-')!==0)return;
+    var id=(h==='about')?'help-author':h;
+    var page=document.getElementById('page-help');
+    var nav=document.querySelector('button[data-page="help"]');
+    if(nav&&page&&page.hidden){nav.click();}
+    setTimeout(function(){
+      var t=document.getElementById(id);
+      if(t){t.scrollIntoView({block:'start'});if(t.focus){try{t.focus({preventScroll:true});}catch(e){t.focus();}}}
+    },140);
+  }
+  window.addEventListener('hashchange',jump);
+  if(location.hash){setTimeout(jump,220);}
+})();
 </script>
 </body>
 </html>
