@@ -8,6 +8,8 @@
 
 > 「归藏」取「收藏归位、藏之于己」之意。控制台是流水线操作台，Obsidian 才是书房。
 
+**下载安装**：[最新 Release](https://github.com/onefreecomet/guizang-douyin-kb/releases/latest) 里的 `Guizang-Setup-<版本>.exe`，双击即用（自带 Python / yt-dlp / Node，免管理员）。想从源码跑见下面「方式二」。
+
 ---
 
 ## 它解决什么问题
