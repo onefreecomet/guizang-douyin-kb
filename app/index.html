@@ -175,6 +175,17 @@ body::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opac
 .help-faq-group{margin:26px 0 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .help-faq-group:first-of-type{margin-top:18px}
 .help-faq-group+.faq{border-top:0;padding-top:8px}
+.help-steps--tight li{padding:9px 0}
+.help-fig{margin:16px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+[data-skin="ink"] .help-fig{background:var(--raised)}
+.help-fig-head{margin:0 0 2px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.help-fig-row{display:grid;grid-template-columns:20px 124px minmax(0,1fr) 168px;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--line-soft);font-size:12.5px}
+.help-fig-row:first-of-type{border-top:0;margin-top:6px}
+.help-fig-n{display:grid;place-items:center;width:18px;height:18px;border:1px solid var(--acc-line);border-radius:50%;font-family:ui-monospace,Consolas,monospace;font-size:10px;line-height:1;color:var(--acc)}
+.help-fig-k{color:var(--txt)}
+.help-fig-v{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--dim)}
+.help-fig-t{font-size:12px;color:var(--muted)}
+@media(max-width:1000px){.help-fig-row{grid-template-columns:20px minmax(0,1fr);row-gap:2px}.help-fig-v,.help-fig-t{grid-column:2}}
 @keyframes help-rise{from{opacity:0;transform:translate3d(0,6px,0)}to{opacity:1;transform:none}}
 #page-help:not([hidden]) .help-toc{animation:help-rise .3s var(--ease-out) both}
 #page-help:not([hidden]) .help-sec{animation:help-rise .3s var(--ease-out) both}
@@ -408,6 +419,7 @@ body::after{content:"";position:fixed;inset:0;z-index:1;pointer-events:none;opac
       <section class="help-sec" id="help-faq" tabindex="-1" aria-labelledby="h-faq">
         <div class="help-sec-head"><span class="mono">07</span><h2 id="h-faq">常见问题</h2></div>
         <h3 class="help-faq-group">配置与安全</h3>
+        <details class="faq"><summary>以后想改配置（路径 / 通知 / AI）怎么办？</summary><ol class="help-steps help-steps--tight"><li><div><b>打开设置页</b><span>左侧「设置」，或者说明页右上角的「打开设置」。</span></div></li><li><div><b>改对应的那几栏</b><span>最常改的是下面五栏；按编号对一遍再动手，改路径只影响之后写入的位置，旧的视频和笔记不会自动搬家。</span></div></li><li><div><b>点「保存设置」</b><span>底部状态会从「有未保存的修改」变回「设置已保存」。收藏夹名、04:00、子目录这三栏是固定的，输入框是灰的，改不了。</span></div></li><li><div><b>当场验一下</b><span>通知区点「发送测试通知」、AI 区点「测试 AI 连通」；两处都通过，剩下的就交给每天 04:00。</span></div></li></ol><figure class="help-fig" role="img" aria-label="设置页五栏示意：下载根目录、Cookies 文件路径、Vault 路径、飞书接收标识、API 密钥"><div class="help-fig-head">设置页 · 最常改的五栏</div><div class="help-fig-row"><span class="help-fig-n">1</span><span class="help-fig-k">下载根目录</span><span class="help-fig-v">D:\…\抖音视频下载</span><span class="help-fig-t">视频与转写放这里</span></div><div class="help-fig-row"><span class="help-fig-n">2</span><span class="help-fig-k">Cookies 文件路径</span><span class="help-fig-v">…\cookies.txt</span><span class="help-fig-t">过期后重新导出覆盖</span></div><div class="help-fig-row"><span class="help-fig-n">3</span><span class="help-fig-k">Vault 路径</span><span class="help-fig-v">D:\…\你的库</span><span class="help-fig-t">Obsidian 库的根目录</span></div><div class="help-fig-row"><span class="help-fig-n">4</span><span class="help-fig-k">飞书接收标识</span><span class="help-fig-v">ou_… 或 oc_…</span><span class="help-fig-t">配错就收不到暂停通知</span></div><div class="help-fig-row"><span class="help-fig-n">5</span><span class="help-fig-k">API 密钥</span><span class="help-fig-v">••••••</span><span class="help-fig-t">留空＝不修改</span></div></figure><p class="help-sub">示意图代替截图：真实路径因机器而异，而且密钥那栏永远不回显。字段名与顺序照设置页排，对得上就能改。</p></details>
         <details class="faq"><summary>AI 没配置或调用失败会有影响吗？</summary><p>不影响入库。转写原文照常写入，状态停在「待加工」；之后在知识库点「补齐 AI 加工」补摘要、要点、主题与系列即可，已加工的不会重复花钱。</p></details>
         <details class="faq"><summary>「在 Obsidian 中打开」没反应？</summary><p>需要本机装有 Obsidian 且这个 vault 已加入 Obsidian。链接形如 <span class="mono">obsidian://open?vault=…&amp;file=90%20-…</span>，路径空格会编码成 %20；vault 改过名就去设置里同步改「Vault 路径」。</p></details>
         <details class="faq"><summary>会改坏我自己的 Obsidian 笔记吗？</summary><p>程序只写「90 - 抖音精选」这一个子目录，且只改自动区与它负责的 frontmatter 字段；其他笔记不读不写。主题页与索引页同样保留自动区外的手写内容。</p></details>
