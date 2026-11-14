@@ -75,7 +75,7 @@
 .chat-form .actions{justify-content:space-between}
 .kb-chat[hidden]{display:none}
 @media(max-width:1180px){.kb-layout.chat-open{grid-template-columns:minmax(0,1fr);gap:0}.kb-layout.chat-open .kb-browser{display:none}.kb-layout.chat-open .kb-chat{display:flex;position:static;top:auto;max-height:420px;margin-top:16px}}
-@media(max-width:760px){.kb-chat{padding:16px}}
+@media(max-width:760px){.kb-chat{padding:16px}.help-open-lead{font-size:26px}}
 .banner-act{min-height:28px;padding:0 12px;margin-left:12px;font-size:12px}
 .run-extra{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;padding-top:20px;margin-top:20px;border-top:1px solid var(--line);font-size:13px;color:var(--dim)}
 .run-extra .mono{color:var(--txt)}
@@ -143,6 +143,14 @@
 .help-anno b{font-weight:500}
 .help-anno span{max-width:52ch;color:var(--dim);font-size:15px}
 .help-anno .mono{color:var(--txt)}
+.help-open{margin:0 0 40px;padding:0 0 28px;border-bottom:1px solid var(--line)}
+.help-open-mono{margin:0 0 14px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.help-open-lead{margin:0;font-size:32px;line-height:1.3;font-weight:500;letter-spacing:-.01em;color:var(--txt);text-wrap:balance}
+.help-open-meta{display:flex;flex-wrap:wrap;gap:8px 32px;margin:22px 0 0;font-size:13px;line-height:1.6;color:var(--dim)}
+.help-open-meta b{margin-right:6px;font-weight:500;color:var(--txt)}
+.help-open-meta b.mono{font-size:12px;font-variant-numeric:tabular-nums;color:var(--acc)}
+.help-colophon{margin:56px 0 0;padding-top:20px;border-top:1px solid var(--line);font-size:11px;line-height:1.7;color:var(--muted)}
+#page-help .track li:nth-child(4){border-top-color:var(--acc-line);color:var(--txt)}
 @keyframes help-rise{from{opacity:0;transform:translate3d(0,6px,0)}to{opacity:1;transform:none}}
 #page-help:not([hidden]) .help-toc{animation:help-rise .3s var(--ease-out) both}
 #page-help:not([hidden]) .help-sec{animation:help-rise .3s var(--ease-out) both}
@@ -233,6 +241,15 @@
 </section>
 <section class="page" id="page-help" aria-labelledby="title-help" hidden>
   <div class="page-heading"><div><h1 id="title-help">说明</h1><p>这个程序做什么、怎么用、出问题按哪里查</p></div><div class="actions"><button data-go="settings">打开设置</button></div></div>
+  <div class="help-open">
+    <p class="help-open-mono mono">说明书 · 2026-11</p>
+    <p class="help-open-lead">收藏在手机上，<br>知识库在 Obsidian 里。</p>
+    <div class="help-open-meta">
+      <span><b class="mono">04:00</b>每天自动同步一次</span>
+      <span><b>本机</b>视频与转写不出这台电脑</span>
+      <span><b>只写一处</b>笔记落在「90 - 抖音精选」</span>
+    </div>
+  </div>
   <div class="help-page">
     <nav class="help-toc" aria-label="说明页目录">
       <a href="#help-about">它做的事</a>
@@ -332,6 +349,7 @@
       </section>
     </div>
   </div>
+  <p class="help-colophon mono">归藏 · 抖音收藏知识库 · 说明书 2026-11 版 · 本机运行，笔记存在你自己的 Obsidian 里</p>
 </section>
 </main>
 </div>
