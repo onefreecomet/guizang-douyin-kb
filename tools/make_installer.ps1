@@ -10,10 +10,13 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Version = "1.0.0",
+    # 留空 = 用 tools\version.iss 里的版本；传了就顺手写回 version.iss（版本号唯一来源）
+    [string]$Version = "",
     [switch]$SkipPortable,
     [switch]$SkipCompile,
-    [string]$Iscc = ""
+    [string]$Iscc = "",
+    # 产物输出到别处（不传就是 dist\）
+    [string]$OutDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,16 +25,34 @@ $ProgressPreference    = "SilentlyContinue"
 
 $Root    = Split-Path -Parent $PSScriptRoot
 $Payload = Join-Path $Root "build\payload"
-$Dist    = Join-Path $Root "dist"
+$Dist    = if ($OutDir) { $OutDir } else { Join-Path $Root "dist" }
 $Runtime = Join-Path $Root "runtime"
+$VerFile = Join-Path $PSScriptRoot "version.iss"
 
 function Head($m) { Write-Host ""; Write-Host "[$m]" -ForegroundColor Cyan }
 function Say($m)  { Write-Host "  $m" }
 function Die($m)  { Write-Host "  $m" -ForegroundColor Red; exit 1 }
 
+# ---------------------------------------------------------------- 0. 版本号
+if (-not (Test-Path $VerFile)) { Die "缺 tools\version.iss（版本号唯一来源）" }
+$verText = [System.IO.File]::ReadAllText($VerFile)
+$m = [regex]::Match($verText, '#define\s+AppVersion\s+"([^"]+)"')
+if (-not $m.Success) { Die "tools\version.iss 里找不到 #define AppVersion `"...`"" }
+$fileVer = $m.Groups[1].Value
+if ($Version) {
+    if ($Version -ne $fileVer) {
+        $verText = [regex]::Replace($verText, '#define\s+AppVersion\s+"[^"]*"', "#define AppVersion `"$Version`"")
+        [System.IO.File]::WriteAllText($VerFile, $verText, (New-Object System.Text.UTF8Encoding($true)))
+        Say "已把 tools\version.iss 的版本号 $fileVer -> $Version"
+    }
+} else {
+    $Version = $fileVer
+}
+
 Write-Host "归藏 · 安装包构建"
-Write-Host "版本    : $Version"
+Write-Host "版本    : $Version（来源 tools\version.iss）"
 Write-Host "项目目录: $Root"
+Write-Host "输出到  : $Dist"
 
 # ---------------------------------------------------------------- 1. 便携环境
 Head "1/3 便携运行环境"
@@ -111,21 +132,17 @@ if (-not $Iscc) {
 Say "编译器: $Iscc"
 
 $issSrc = Join-Path $PSScriptRoot "installer.iss"
-$issTmp = Join-Path $PSScriptRoot "installer.build.iss"
-$text = [System.IO.File]::ReadAllText($issSrc)
-$text = [regex]::Replace($text, '#define AppVersion "[^"]*"', "#define AppVersion `"$Version`"")
 # 语言文件放在 tools\ 下，编译时把它带上（不发给用户）
 $zh = Join-Path $PSScriptRoot "ChineseSimplified.isl"
 if (-not (Test-Path $zh)) { Die "缺 tools\ChineseSimplified.isl（中文安装界面）" }
-[System.IO.File]::WriteAllText($issTmp, $text, (New-Object System.Text.UTF8Encoding($true)))
 
 New-Item -ItemType Directory -Force -Path $Dist | Out-Null
-& $Iscc "/Qp" $issTmp
+# 直接编译 installer.iss（版本号走 #include "version.iss"，不再生成临时副本）
+& $Iscc "/Qp" "/O$Dist" $issSrc
 $code = $LASTEXITCODE
-Remove-Item $issTmp -Force -ErrorAction SilentlyContinue
 if ($code -ne 0) { Die "ISCC 编译失败（退出码 $code）" }
 
-$setup = Get-ChildItem $Dist -Filter "归藏Setup-$Version.exe" | Select-Object -First 1
+$setup = Get-ChildItem $Dist -Filter "归藏Setup-$Version.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $setup) { Die "没找到产物 $Dist\归藏Setup-$Version.exe" }
 Write-Host ""
 Write-Host ("完成：{0}（{1:N1} MB）" -f $setup.FullName, ($setup.Length / 1MB)) -ForegroundColor Green

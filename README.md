@@ -206,6 +206,9 @@ tools/
   make_portable.ps1   # 打包便携运行时（Python embed + yt-dlp + node）
   make_installer.ps1  # 拼 payload 并调 ISCC 打安装包
   verify_installer.ps1# 安装包全流程冒烟测试（装 → 体检 → 起服务 → 卸载）
+  verify_clean_env.ps1# 干净环境验证（PATH 只剩 System32、USERPROFILE 指向空目录，27 项检查）
+  sign_installer.ps1  # 代码签名（有证书才签，没证书打印说明并正常退出）
+  version.iss         # 版本号唯一来源：改版本只改这一行
   installer.iss       # Inno Setup 脚本
   ai_probe.py         # 手边探针：验证 AI 接口是否通
 tests/                # 251 项离线测试（unittest，无网络）
@@ -229,6 +232,10 @@ runtime\python\python.exe -m unittest discover -s tests -p "test_*.py"
 - 飞书妙记按次计费，请注意 `work/ai_usage.json` 与妙记用量；程序已做「不重复创建妙记」的保护。
 - 目前面向 Windows 单机使用；控制台与 Obsidian 配置都指向本机路径。
 - 主题/系列由 AI 自动归类，可能产生近似主题，控制台提供「合并到…」手动收拢。
+- **安装包没有代码签名**：首次运行可能弹 SmartScreen「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」。
+  消掉这个提示只能买代码签名证书，拿到后跑 `tools\sign_installer.ps1` 重签。
+- 本机没有 Windows 沙盒/虚拟化，所以「干净机器」是用 `tools\verify_clean_env.ps1` 剥净环境近似的；
+  它能证明不依赖本机开发环境（python / node / uv / .workbuddy），但**不等于**在真虚拟机上装过。
 
 ## 许可
 

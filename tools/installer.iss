@@ -4,7 +4,8 @@
 
 #define AppName "归藏 · 抖音收藏知识库"
 #define AppShortName "归藏"
-#define AppVersion "1.0.0"
+; 版本号只在 tools\version.iss 里改一次，这里不要写死
+#include "version.iss"
 #define AppPublisher "冰临城下"
 #define AppUrl "https://github.com/"
 #define SourceRoot "..\build\payload"

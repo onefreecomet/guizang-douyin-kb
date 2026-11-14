@@ -172,10 +172,19 @@ runtime\python\python.exe app\doctor.py
 powershell -ExecutionPolicy Bypass -File tools\make_portable.ps1
 
 # 2. 拼 payload、编译安装包 → dist\归藏Setup-<版本>.exe
-powershell -ExecutionPolicy Bypass -File tools\make_installer.ps1 -Version 1.0.0
+#    版本号只从 tools\version.iss 读，不用传 -Version（要改版本就改那一行）
+powershell -ExecutionPolicy Bypass -File tools\make_installer.ps1
 
 # 3. 冒烟测试：静默装到 C:\gz-inst-test → 体检 → 起服务探接口 → 卸载并确认删干净
 powershell -ExecutionPolicy Bypass -File tools\verify_installer.ps1
+
+# 4. 干净环境验证：装到 C:\gz-clean-test，PATH 只剩 System32、USERPROFILE 指向空目录，
+#    确认不依赖本机的 python / node / uv / .workbuddy（27 项检查）
+powershell -ExecutionPolicy Bypass -File tools\verify_clean_env.ps1
+
+# 5. 代码签名（可选，需要证书；没有证书会打印说明并正常退出）
+powershell -ExecutionPolicy Bypass -File tools\sign_installer.ps1 -Pfx 你的证书.pfx
+powershell -ExecutionPolicy Bypass -File tools\sign_installer.ps1 -Thumbprint <证书指纹>
 ```
 
 构建链上几个必须知道的坑（踩过）：
@@ -185,6 +194,11 @@ powershell -ExecutionPolicy Bypass -File tools\verify_installer.ps1
 - 安装包**不能直接从 `D:\...\dist\` 启动**（退出码 1、连日志都不生成），先拷到本地盘再跑。
 - 静默安装要传 `/DIR=C:\path`（**不加引号**）且路径不含空格，否则会落到默认目录。
 - `[Tasks]` 里 `startup` 的 `Flags` 是 `unchecked`：向导里默认不勾开机自启。
+- **安装包没有代码签名**。首启可能弹 SmartScreen「Windows 已保护你的电脑」，点「更多信息 → 仍要运行」即可。
+  要消掉这个提示只能买代码签名证书（OV 数千元/年，EV 更贵），拿到证书后跑 `tools\sign_installer.ps1` 重签、重新上传 Release。
+- **本机没有 Windows 沙盒/虚拟化**（`Containers-DisposableClientVM` 为 Disabled、`HypervisorPresent` 为 False），
+  所以「干净机器验证」是用 `tools\verify_clean_env.ps1` 剥净环境近似的：PATH 只剩 System32、`USERPROFILE` 指向空目录、
+  数据目录隔离到临时位置。它能证明不依赖本机开发环境，但**不等于**在真虚拟机上装过。
 
 代码结构：
 
@@ -198,7 +212,8 @@ powershell -ExecutionPolicy Bypass -File tools\verify_installer.ps1
 - `app/uninstall_cleanup.py` — 卸载前把本目录起来的进程关掉。
 - `app/create_shortcut.py` — 建桌面「归藏」/ 启动「归藏守护」快捷方式（走 PowerShell COM，不依赖 pywin32）。
 - `tools/bootstrap.ps1` — 源码自助安装脚本（幂等）。
-- `tools/make_portable.ps1` / `make_installer.ps1` / `verify_installer.ps1` / `installer.iss` — 安装包构建与冒烟测试。
+- `tools/version.iss` — 版本号的**唯一来源**（`#define AppVersion "x.y.z"`）；改版本只改这一行。
+- `tools/make_portable.ps1` / `make_installer.ps1` / `verify_installer.ps1` / `verify_clean_env.ps1` / `sign_installer.ps1` / `installer.iss` — 安装包构建、冒烟测试、干净环境验证、签名。
 - `tests/` — 单元测试，全部用临时目录 + mock，不碰真实数据。
 
 约定：
