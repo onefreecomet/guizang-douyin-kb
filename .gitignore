@@ -1,4 +1,5 @@
-# 运行数据与凭据（绝不入库）
+# ---------------------------------------------------------------- 运行数据与凭据
+# 绝不入库：配置里有 AI 密钥，数据库里有 pipeline/knowledge 状态，日志里有路径与 token
 work/
 *.db
 *.db-journal
@@ -10,17 +11,28 @@ cookies.txt
 deployment_manifest.json
 /wp-test/
 
-# 备份目录（历史部署留档，仅存本机）
+# ---------------------------------------------------------------- 备份目录
+# 每次部署前的本机留档，只在本机有意义
 .[a-z0-9]*-backups/
+.b-stage-backups/
+.a-stage-backups/
 .round*-backups/
 .console-fix-backups/
-.p1-backups/
-.p2-backups/
-.p3-backups/
-.p4-backups/
-.p5-backups/
+.p*-backups/
+.icon-backup-*/
+*.bak
+*.bak-*
 
-# 测试与缓存
+# ---------------------------------------------------------------- 便携运行时与构建产物
+# 这些是 tools\make_portable.ps1 / make_installer.ps1 在本机生成的，加起来 115 MB 以上
+runtime/
+bin/
+dist/
+build/
+tools/.cache/
+*.zip
+
+# ---------------------------------------------------------------- 测试与缓存
 tests/.runs/
 tests/fixtures/tmp/
 __pycache__/
@@ -28,13 +40,14 @@ __pycache__/
 .venv/
 venv/
 
-# 下载产物与转写原文（体积大且含个人内容）
+# ---------------------------------------------------------------- 下载产物与转写原文
+# 体积大且含个人内容
 *.mp4
 *.m4a
 *.webm
 *.txt.bak
 
-# 编辑器与系统
+# ---------------------------------------------------------------- 编辑器与系统
 .vscode/
 .idea/
 Thumbs.db

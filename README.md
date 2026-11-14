@@ -29,6 +29,10 @@
 - **稳定性**：开机自启 + 守护进程崩溃自愈（30 秒探活）、可恢复失败自动重试（退避 + 上限）、
   收藏夹没扫完时降级为「部分成功」而不是整轮失败。
 - **通知**：需要人工验证码、同步完成、同步暂停时通过飞书机器人私聊提醒。
+- **关窗不退出**：关掉控制台窗口只是缩到右下角托盘，后台同步继续跑；托盘图标左键叫回窗口，
+  右键可打开控制台 / 看作者 / 退出服务 / 只退出托盘。
+- **三套皮肤**：纸白·墨、夜色·苍青、暖纸·朱砂，设置页一键切换。
+- **能装给自己的亲友**：一条命令打安装包，双击即用，自带 Python / yt-dlp / Node。
 
 ## 架构
 
@@ -58,53 +62,93 @@
 
 ## 环境要求
 
+> 用安装包的话，下面前四项**都不用自己装**——安装包里带了 Python 运行时、yt-dlp 和 Node。
+
 | 依赖 | 版本 | 用途 |
 | --- | --- | --- |
 | Windows 10/11 | — | 依赖 Job Object、`pythonw`、Edge |
 | Python | 3.13 | 主程序与测试（纯标准库，无第三方包） |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 2026.10 及以上 | 下载抖音视频 |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | 2026.10 及以上 | 下载抖音视频（守护进程每 24 小时自动升级） |
 | Node.js | 22 | 供 `lark-cli` 使用 |
 | [lark-cli](https://www.npmjs.com/package/@larksuiteoapi/lark-cli) | 1.0.100+ | 飞书妙记上传与取稿 |
-| Microsoft Edge | — | CDP 自动化扫描收藏夹 |
+| Microsoft Edge | — | CDP 自动化扫描收藏夹，也是控制台窗口壳 |
 | Obsidian | 1.5+ | 阅读端（可选，但推荐） |
 
 ## 快速开始
 
-1. 把仓库放到本机任意目录（下文记为 `<安装目录>`）。
-2. 安装依赖并准备虚拟环境：
+### 方式一：安装包（推荐）
+
+1. 双击 `归藏Setup-<版本>.exe`（约 33.8 MB）。免管理员，装在 `%LOCALAPPDATA%\Programs\Guizang`。
+2. 装完自动打开控制台；第一次进去在「设置」里填：下载根目录、cookies 路径、Obsidian vault 路径、
+   飞书通知接收人、AI 接口地址与密钥。
+3. 拿不准还缺什么就跑体检：
 
    ```powershell
-   py -3.13 -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install yt-dlp
+   runtime\python\python.exe app\doctor.py
+   ```
+
+安装包自带 Python 3.13.15 便携运行时、yt-dlp 与 Node 22；控制台、托盘、开机自启都在安装时建好。
+卸载走「设置 → 应用」，会先关掉在跑的进程再删程序文件，`work` 数据保留。
+
+### 方式二：源码
+
+1. 把仓库放到本机任意目录（下文记为 `<安装目录>`）。
+2. 一键准备环境并体检：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File tools\bootstrap.ps1
+   ```
+
+   它会找 Python → 建 `.venv` → 装 yt-dlp → 准备 node（优先用自带的 `bin\node`）→ 建快捷方式 → 体检。
+   每一步都可重复跑。
+3. 装飞书妙记 CLI 并登录：
+
+   ```powershell
    npm i -g @larksuiteoapi/lark-cli
    lark-cli auth login
    ```
 
-3. 导出浏览器 cookies 到 `%USERPROFILE%\抖音视频下载\cookies.txt`
+4. 导出浏览器 cookies 到 `%USERPROFILE%\抖音视频下载\cookies.txt`
    （或直接运行 `scripts\export_cookies.py`）。
-4. 启动：
+5. 启动：双击桌面「归藏」，或
 
    ```powershell
-   .\.venv\Scripts\pythonw.exe app\server.py --port 8765
+   runtime\python\pythonw.exe app\launcher.py
    ```
 
-   也可以双击 `app\start.bat`，或运行 `app\launcher.py`（自动拉起服务并打开独立窗口）。
-5. 打开 `http://127.0.0.1:8765/`，在「设置」里填：
-   下载根目录、Cookies 路径、Obsidian vault 路径、飞书通知接收人、AI 接口地址与密钥。
-6. 首次建议点一次「立即同步」走完整链路，确认能写入 Obsidian。
+   也可以双击 `app\start.bat`，或直接 `app\server.py --port 8765`（不带窗口壳）。
+6. 打开 `http://127.0.0.1:8765/`，在「设置」里填齐配置。
+7. 首次建议点一次「立即同步」走完整链路，确认能写入 Obsidian。
+
+更细的安装/排错/构建安装包说明见 [INSTALL.md](INSTALL.md)。
 
 ### 开机自启与崩溃自愈
 
-把 `app\watchdog.py` 放进启动项（`shell:startup` 放一个快捷方式）：
+安装包会在「启动」里放一个 `归藏守护` 快捷方式（安装时可选择不勾）。源码方式则手动把
+`app\watchdog.py` 放进启动项（`shell:startup` 放一个快捷方式）：
 
 ```
 pythonw.exe app\watchdog.py --interval 30
 ```
 
-守护进程每 30 秒 `GET /api/ping` 探活，连续两次失败才拉起服务；`work\watchdog.lock` 保证单实例；
-控制台「退出服务」会写 `work\watchdog.pause` 标记，守护进程看到后不再拉起。
+守护进程每 30 秒 `GET /api/ping` 探活，连续两次失败才拉起服务；顺手把被杀掉的托盘图标拉回来、
+每天查一次 yt-dlp 新版。`work\watchdog.lock` 保证单实例；控制台「退出服务」会写
+`work\watchdog.pause` 标记，守护进程看到后不再拉起。
 
-## 配置
+## 界面
+
+控制台是一张纸：标题用宋体、面板有版心线、空状态是线描小图（匣 / 卷 / 册 / 笔 / 简），
+侧栏用书法字标「归藏」。三套皮肤各走一个色相，不是同一个红换深浅：
+
+| 皮肤 | 主色 | 纸面 | 适合 |
+| --- | --- | --- | --- |
+| 纸白 · 墨 | `#1C1F23` 墨 | `#F6F5F2` | 白天、长时间看 |
+| 夜色 · 苍青 | `#77B4AB` 苍青 | `#14181A` | 夜里 |
+| 暖纸 · 朱砂 | `#A9482C` 朱砂 | `#F3EADC` | 想要点旧书气 |
+
+配色对比度全部过 WCAG AA（最紧的一对 4.5:1 以上），标题字自托管式回退到系统宋体，不联网取字体。
+品牌资产在 `app/assets/`，图标由 `app/make_icon.py` 从 `app/icon_frames/` 拼出十档 ICO，
+另配 PNG favicon 给 Chromium 用（Chromium 解不了纯 DIB 帧的 ICO，任务栏会退回默认地球图标）。
 
 配置存在**运行目录** `work/config.json`（首次启动自动生成），含敏感字段，因此永远不纳入版本库：
 
@@ -138,26 +182,43 @@ app/
   knowledge.py       # 受控写入 Obsidian、AUTO 区块、主题/系列/索引页
   enrich.py          # AI 加工与用量台账（纯标准库 HTTP 客户端）
   chat.py            # 知识库问答（检索 + 程序说明 + 笔记上下文）
-  watchdog.py        # 守护进程：探活、崩溃自愈、单实例锁
+  watchdog.py        # 守护进程：探活、崩溃自愈、托盘补拉、yt-dlp 日检
+  tray.py            # 右下角托盘（纯 ctypes，无第三方依赖）
+  paths.py           # 「东西在哪」唯一入口：Python / node / lark-cli / Edge / 数据目录
+  doctor.py          # 一条命令看还缺什么（只读、不联网）
+  ytdlp_update.py    # yt-dlp 从 PyPI 自更新（不 import yt_dlp）
+  uninstall_cleanup.py  # 卸载前关掉在跑的进程
+  create_shortcut.py # 建桌面 / 启动项快捷方式（纯标准库，走 PowerShell COM）
+  launcher.py        # 拉起服务 + Edge 独立窗口 + 托盘
+  make_icon.py       # 从 icon_frames 拼多尺寸 ICO（纯标准库）
   index.html         # 单文件控制台（原生 JS，无构建步骤）
+  assets/            # 品牌 logo 主图与字标
 scripts/
   scan_favorites.py  # Edge + CDP 扫描收藏夹（验证码人工接管）
   download_with_cookies.py          # yt-dlp / greenvideo 两条下载路径
   batch_transcribe.py               # 飞书妙记上传、取稿、失败容忍
   video_parser/                     # Node 脚本：解析播放器直链（无第三方依赖）
   cdp_browser.py, command_runner.py, task_state.py, usage.py, naming.py, organize.py
-tests/               # 203 项离线测试（unittest，无网络）
-docs/                # 设计文档与各阶段说明
+tools/
+  bootstrap.ps1       # 源码安装：找 Python → 建环境 → 装 yt-dlp → 备 node → 体检
+  make_portable.ps1   # 打包便携运行时（Python embed + yt-dlp + node）
+  make_installer.ps1  # 拼 payload 并调 ISCC 打安装包
+  verify_installer.ps1# 安装包全流程冒烟测试（装 → 体检 → 起服务 → 卸载）
+  installer.iss       # Inno Setup 脚本
+  ai_probe.py         # 手边探针：验证 AI 接口是否通
+tests/                # 251 项离线测试（unittest，无网络）
+docs/                 # 设计文档与各阶段说明
 ```
 
 ## 测试
 
 ```powershell
-.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"
+runtime\python\python.exe -m unittest discover -s tests -p "test_*.py"
 ```
 
-203 项测试覆盖调度与队列、重试与暂停、扫描判据、下载校验、妙记容忍、AI 加工与降级、
-受控写入与并发、主题合并、守护进程、HTTP 接口与知识库问答。全部离线运行（AI 与飞书均用本地桩）。
+251 项测试覆盖调度与队列、重试与暂停、扫描判据、下载校验、妙记容忍、AI 加工与降级、
+受控写入与并发、主题合并、守护进程、托盘、路径解析、yt-dlp 自更新、卸载清理、HTTP 接口与知识库问答。
+全部离线运行（AI、飞书、PyPI、进程表均用本地桩）。
 
 ## 说明与限制
 
