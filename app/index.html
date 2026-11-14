@@ -151,6 +151,11 @@
 .help-open-meta b.mono{font-size:12px;font-variant-numeric:tabular-nums;color:var(--acc)}
 .help-colophon{margin:56px 0 0;padding-top:20px;border-top:1px solid var(--line);font-size:11px;line-height:1.7;color:var(--muted)}
 #page-help .track li:nth-child(4){border-top-color:var(--acc-line);color:var(--txt)}
+.help-lead::first-letter{float:left;margin:4px 12px 0 0;font-size:46px;line-height:.82;font-weight:500;color:var(--acc)}
+.help-side{display:grid;align-content:start;gap:6px;margin:0;font-size:12.5px;line-height:1.75;color:var(--muted)}
+.help-side b{font-family:ui-monospace,Consolas,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+@media(min-width:1200px){.help-sec:has(> .help-side){display:grid;grid-template-columns:minmax(0,1fr) 196px;column-gap:32px;align-items:start}.help-sec:has(> .help-side)>*{grid-column:1}.help-sec:has(> .help-side)>.help-side{grid-column:2;grid-row:1/span 4;padding-top:12px;border-top:1px solid var(--line)}.help-sec:has(> .help-side)>.track,.help-sec:has(> .help-side)>.hint{grid-column:1/-1}}
+@media(max-width:1199px){.help-side{margin:14px 0 0;padding:12px 14px;border:1px solid var(--line-soft);border-radius:8px;background:var(--surface)}}
 @keyframes help-rise{from{opacity:0;transform:translate3d(0,6px,0)}to{opacity:1;transform:none}}
 #page-help:not([hidden]) .help-toc{animation:help-rise .3s var(--ease-out) both}
 #page-help:not([hidden]) .help-sec{animation:help-rise .3s var(--ease-out) both}
@@ -263,6 +268,7 @@
     <div class="help-body">
       <section class="help-sec" id="help-about" tabindex="-1" aria-labelledby="h-about">
         <div class="help-sec-head"><span class="mono">01</span><h2 id="h-about">它做的事</h2></div>
+        <aside class="help-side"><b>批注</b>「妙记」指飞书妙记：把视频里的人声转成带时间戳的文字，按分钟计费；转写失败重试会复用已建的那一条，不会重复扣费。</aside>
         <p class="help-lead">你在手机上把抖音视频收藏到「有帮助」，这台电脑每天定时把新收藏下载下来、转成带时间戳的文字，整理成笔记写进你的 Obsidian。</p>
         <p class="help-sub">控制台只负责跑流程、看结果、排错；阅读、改写、双链都在 Obsidian 里做。</p>
         <ol class="track" aria-label="每天自动经过的五步">
@@ -276,6 +282,7 @@
       </section>
       <section class="help-sec" id="help-daily" tabindex="-1" aria-labelledby="h-daily">
         <div class="help-sec-head"><span class="mono">02</span><h2 id="h-daily">每天怎么用</h2></div>
+        <aside class="help-side"><b>为什么是 04:00</b>收藏通常是你睡前攒下的；机器在你睡着时跑完，白天不抢占带宽，也不弹验证码窗口打扰你。想立刻跑就点「立即同步」。</aside>
         <ol class="help-rhythm">
           <li><span class="mono help-when">手机上</span><div><b>收藏</b><p>刷到值得留的视频，存进抖音收藏夹「有帮助」。不用分类，主题由程序事后归。</p></div></li>
           <li><span class="mono help-when">04:00</span><div><b>等</b><p>电脑保持开机联网，到点自动跑完五步，不用打开任何窗口。</p></div></li>
