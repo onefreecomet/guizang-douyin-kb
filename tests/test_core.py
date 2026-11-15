@@ -185,5 +185,106 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(server.JOB['state'],'stopped')
 
 
+class SharePageTests(unittest.TestCase):
+    """分享页直链是 yt-dlp 签名失效后的主力通道，解析规则要单独守住。"""
+    def setUp(self):
+        self.root = ROOT / 'tests' / '.runs' / uuid.uuid4().hex
+        self.root.mkdir(parents=True)
+        self.addCleanup(self.cleanup)
+
+    def cleanup(self):
+        expected_parent = (ROOT / 'tests' / '.runs').resolve()
+        assert self.root.resolve().parent == expected_parent and len(self.root.name) == 32
+        import shutil
+        shutil.rmtree(self.root)
+
+    def share_html(self, urls, desc='标题', author='作者'):
+        payload = {'loaderData': {'video_(id)/page': {'videoInfoRes': {'item_list': [{
+            'desc': desc,
+            'author': {'nickname': author},
+            'video': {'duration': 12345, 'play_addr': {'url_list': urls}},
+        }]}}}}
+        return ('<html><script>window._ROUTER_DATA = ' + json.dumps(payload, ensure_ascii=False)
+                + '</script></html>')
+
+    def test_share_video_id_accepts_douyin_url_forms(self):
+        for url in ('https://www.douyin.com/video/7704266308103228726',
+                    'https://www.iesdouyin.com/share/video/7704266308103228726/?region=CN',
+                    'https://v.douyin.com/video/7704266308103228726'):
+            self.assertEqual(download.share_video_id(url), '7704266308103228726')
+        self.assertIsNone(download.share_video_id('https://www.douyin.com/user/self'))
+        self.assertEqual(download.share_video_id('7704266308103228726'), '7704266308103228726')
+
+    def test_share_play_info_prefers_unwatermarked_url_and_parses_nested_json(self):
+        html = self.share_html(['https://aweme.snssdk.com/aweme/v1/playwm/?video_id=abc'])
+        info = download.share_play_info(html)
+        self.assertEqual(info['desc'], '标题')
+        self.assertEqual(info['author'], '作者')
+        self.assertEqual(info['duration_ms'], 12345)
+        self.assertEqual(info['urls'], ['https://aweme.snssdk.com/aweme/v1/playwm/?video_id=abc'])
+        # 骨架页（未登录）没有 videoInfoRes：必须明确判成拿不到直链
+        self.assertIsNone(download.share_play_info(
+            '<html><script>window._ROUTER_DATA = {"loaderData":{"video_layout":null}}'
+            '</script></html>'))
+
+    def test_share_play_info_survives_braces_inside_strings(self):
+        html = self.share_html(['https://aweme.snssdk.com/aweme/v1/play/?video_id=x{1}'],
+                              desc='带 { 和 } 的标题')
+        info = download.share_play_info(html)
+        self.assertEqual(info['desc'], '带 { 和 } 的标题')
+        self.assertTrue(info['urls'][0].endswith('video_id=x{1}'))
+
+    def test_download_video_share_promotes_partial_only_on_valid_media(self):
+        cookies = self.root / 'cookies.txt'
+        cookies.write_text('# Netscape HTTP Cookie File\n.douyin.com\tTRUE\t/'
+                           '\tTRUE\t1799670250\tsessionid\tabc\n', encoding='utf-8')
+        media_bytes = media()
+
+        def run(cmd, **kwargs):
+            if cmd[0] == 'curl.exe':
+                target = Path(cmd[cmd.index('-o') + 1])
+                self.assertEqual(target.suffix, '.part')
+                self.assertIn('https://aweme.snssdk.com/aweme/v1/play/', cmd[-1])
+                target.write_bytes(media_bytes)
+                return subprocess.CompletedProcess(cmd, 0, '', '')
+            raise AssertionError('unexpected command ' + str(cmd))
+
+        with (patch.object(download, 'fetch_share_html',
+                           return_value=self.share_html(['https://aweme.snssdk.com/aweme/v1/playwm/?video_id=abc'])),
+              patch.object(download, 'run_command', side_effect=run)):
+            success, path, error = download.download_video_share(
+                'https://www.douyin.com/video/7704266308103228726', self.root, 'video_x', str(cookies))
+
+        self.assertTrue(success)
+        self.assertIsNone(error)
+        self.assertTrue(state.valid_video(path))
+        self.assertFalse((self.root / 'video_x.mp4.part').exists())
+
+    def test_download_video_share_refuses_without_cookies(self):
+        success, path, error = download.download_video_share(
+            'https://www.douyin.com/video/7704266308103228726', self.root, 'video_x', None)
+        self.assertFalse(success)
+        self.assertIn('cookies', error)
+
+    def test_failed_share_then_greenvideo_keeps_both_reasons(self):
+        def share(url, out, name, cookies_file=None, max_retries=3):
+            return False, None, '分享页没有返回视频信息（登录态可能已失效）'
+
+        def green(url, out, name, max_retries=6):
+            return False, None, 'greenvideo 解析未获取到视频直链：请求次数较多，请完成验证码后继续（code 4291）'
+
+        with (patch.object(download, 'download_video_ytdlp',
+                           return_value=(False, None, 'Fresh cookies are needed')),
+              patch.object(download, 'download_video_share', side_effect=share),
+              patch.object(download, 'download_video_greenvideo', side_effect=green)):
+            success, path, method, error = download.download_video(
+                'https://www.douyin.com/video/7704266308103228726', self.root, 'video_x', None)
+
+        self.assertFalse(success)
+        self.assertEqual(method, 'both_failed')
+        self.assertIn('分享页没有返回视频信息', error)
+        self.assertIn('请求次数较多', error)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,7 @@
 """
-批量下载抖音视频（双模式）
-优先 yt-dlp（速度快），失败自动切换 greenvideo.cc 解析下载
+批量下载抖音视频（三模式）
+优先 yt-dlp（速度快），其次 iesdouyin 分享页直链（免费、需登录 cookies），
+最后 greenvideo.cc 第三方解析（按 IP 限流，仅作兜底）
 文件夹名用数字序号
 按视频 ID 恢复，校验媒体文件，结构化报告逐项结果；依赖更新不在下载时执行
 """
@@ -214,6 +215,188 @@ def download_video_ytdlp(url: str, output_dir: Path, video_name: str, cookies_fi
         return False, None, str(e)
 
 
+# 分享页只需登录 cookies，不校验签名；这是目前唯一稳的直链来源
+SHARE_URL = "https://www.iesdouyin.com/share/video/{vid}/?region=CN&mid=0"
+SHARE_UA = ("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 "
+            "(KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1")
+
+
+def share_video_id(url: str):
+    """从各种抖音链接形态里取出纯数字视频 ID"""
+    match = re.search(r"/(?:video|note|slides)/([0-9A-Za-z_-]+)", url or "")
+    if match:
+        return match.group(1)
+    match = re.fullmatch(r"[0-9A-Za-z_-]{1,100}", (url or "").strip())
+    return url.strip() if match else None
+
+
+def cookie_header(cookies_file: str):
+    """把 Netscape cookies.txt 里抖音相关行拼成 Cookie 头；没有文件就返回空串"""
+    if not cookies_file:
+        return ""
+    try:
+        text = Path(cookies_file).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    pairs = []
+    for line in text.splitlines():
+        if line.startswith("#") and not line.startswith("#HttpOnly_"):
+            continue
+        fields = line.replace("#HttpOnly_", "", 1).split("\t")
+        if len(fields) < 7 or "douyin" not in fields[0]:
+            continue
+        pairs.append(f"{fields[5]}={fields[6]}")
+    return "; ".join(pairs)
+
+
+def fetch_share_html(url: str, cookie: str = "", timeout: int = 25):
+    """抓分享页 HTML；分享页对未登录请求只会给出没有 videoInfoRes 的骨架"""
+    headers = {
+        "User-Agent": SHARE_UA,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-CN,zh;q=0.9",
+    }
+    if cookie:
+        headers["Cookie"] = cookie
+    request = urllib.request.Request(url, headers=headers)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(request, timeout=timeout) as response:
+        return response.read().decode("utf-8", "replace")
+
+
+def _balanced_json(raw: str):
+    """从 '_ROUTER_DATA = {...}' 后面截出完整的 JSON 对象"""
+    depth = 0
+    in_string = False
+    escaped = False
+    for position, char in enumerate(raw):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return json.loads(raw[:position + 1])
+    return None
+
+
+def share_play_info(html: str):
+    """从分享页的 _ROUTER_DATA 里取标题/作者/时长和直链列表"""
+    marker = (html or "").find("_ROUTER_DATA")
+    if marker < 0:
+        return None
+    start = html.find("{", marker)
+    if start < 0:
+        return None
+    try:
+        data = _balanced_json(html[start:])
+    except ValueError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    for value in (data.get("loaderData") or {}).values():
+        if not isinstance(value, dict):
+            continue
+        items = (value.get("videoInfoRes") or {}).get("item_list") or []
+        if not items:
+            continue
+        item = items[0]
+        video = item.get("video") or {}
+        urls = [(video.get("play_addr") or {}).get("url_list") or []]
+        play = video.get("play_addr_h264") or video.get("play_addr_265") or {}
+        urls.append(play.get("url_list") or [])
+        flat = [u for group in urls for u in group if u]
+        if not flat:
+            continue
+        return {
+            "desc": str(item.get("desc") or ""),
+            "author": str((item.get("author") or {}).get("nickname") or ""),
+            "duration_ms": video.get("duration"),
+            "urls": flat,
+        }
+    return None
+
+
+def download_video_share(url: str, output_dir: Path, video_name: str,
+                         cookies_file: str = None, max_retries: int = 3):
+    """用 iesdouyin 分享页里的 play_addr 直链下载（无水印优先）
+
+    抖音 Web 接口要 a_bogus 签名，yt-dlp 拿不到就会被风控挡下；分享页
+    只要求登录 cookies，所以这条路径最稳。返回: (success, video_file, error_msg)
+    """
+    vid = share_video_id(url)
+    if not vid:
+        return False, None, "无法从链接里识别视频 ID"
+    if not cookies_file or not Path(cookies_file).exists():
+        return False, None, "缺少 cookies，分享页拿不到直链"
+    cookie = cookie_header(cookies_file)
+    if not cookie:
+        return False, None, "cookies 里没有抖音登录态"
+
+    share = SHARE_URL.format(vid=vid)
+    last_error = "分享页没有返回视频信息"
+    for attempt in range(1, max_retries + 1):
+        print(f"  🔄 分享页解析下载（第 {attempt}/{max_retries} 次尝试）...")
+        try:
+            info = share_play_info(fetch_share_html(share, cookie))
+        except Exception as exc:                                  # 网络抖动也重试
+            last_error = f"分享页抓取失败: {exc}"
+            if attempt < max_retries:
+                time.sleep(3 * attempt)
+                continue
+            return False, None, last_error
+        if not info:
+            last_error = "分享页没有返回视频信息（登录态可能已失效）"
+            if attempt < max_retries:
+                time.sleep(3 * attempt)
+                continue
+            return False, None, last_error
+
+        # play_addr 带水印；把 /playwm/ 换成 /play/ 就是无水印且体积更小
+        candidates = []
+        for direct in info["urls"]:
+            for label, target in (("play", direct.replace("/playwm/", "/play/")),
+                                  ("playwm", direct)):
+                if target not in [c[1] for c in candidates]:
+                    candidates.append((label, target))
+
+        output_file = output_dir / f"{video_name}.mp4"
+        for _label, direct in candidates:
+            partial_file = output_file.with_suffix(".mp4.part")
+            try:
+                result = run_command(
+                    ["curl.exe", "-L", "--fail", "--show-error", "--silent", "-o", str(partial_file),
+                     "-H", f"User-Agent: {UA}",
+                     "-H", "Referer: https://www.iesdouyin.com/",
+                     "--connect-timeout", "20", "--max-time", "300", direct],
+                    capture_output=True, text=True, timeout=310)
+            except subprocess.TimeoutExpired:
+                partial_file.unlink(missing_ok=True)
+                last_error = "直链下载超时"
+                continue
+            if result.returncode == 0 and valid_video(partial_file):
+                partial_file.replace(output_file)
+                size_mb = output_file.stat().st_size / 1024 / 1024
+                print(f"  ✅ 下载完成: {output_file.name} ({size_mb:.1f} MB)")
+                return True, output_file, None
+            real = partial_file.stat().st_size if partial_file.exists() else 0
+            partial_file.unlink(missing_ok=True)
+            last_error = f"直链返回无效文件（{real} 字节）"
+            print(f"  ⚠️ 直链下载失败: {last_error}")
+        if attempt < max_retries:
+            time.sleep(3 * attempt)
+    return False, None, last_error
+
+
 def download_video_greenvideo(url: str, output_dir: Path, video_name: str, max_retries: int = 6):
     """
     使用 greenvideo.cc 解析下载视频（带重试）
@@ -232,6 +415,8 @@ def download_video_greenvideo(url: str, output_dir: Path, video_name: str, max_r
 
         # 第一步：解析获取视频直链
         direct_url = None
+        # 把解析站自己说的原因留下来，「没有直链」和「被限流」是两回事
+        reason = ""
         try:
             result = run_command(
                 [node_path, str(extract_script), "--json", url],
@@ -252,15 +437,19 @@ def download_video_greenvideo(url: str, output_dir: Path, video_name: str, max_r
                         if item.get("fileType") == "video" and item.get("baseUrl"):
                             direct_url = item["baseUrl"]
                             break
+                if not direct_url:
+                    code = data.get("code")
+                    message = str(data.get("message") or "").strip()
+                    reason = f"{message}（code {code}）" if message else f"解析站返回 code {code}"
 
             if not direct_url:
                 if attempt < max_retries:
                     wait_time = 4 * attempt
-                    print(f"  ⏳ 解析未获取到直链，{wait_time} 秒后重试...")
+                    print(f"  ⏳ 解析未获取到直链{('：' + reason) if reason else ''}，{wait_time} 秒后重试...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    return False, None, "解析未获取到视频直链"
+                    return False, None, ("greenvideo 解析未获取到视频直链" + (f"：{reason}" if reason else ""))
 
         except subprocess.TimeoutExpired:
             if attempt < max_retries:
@@ -332,26 +521,36 @@ def download_video_greenvideo(url: str, output_dir: Path, video_name: str, max_r
 
 def download_video(url: str, output_dir: Path, video_name: str, cookies_file: str = None):
     """
-    智能下载：优先 yt-dlp，失败自动切换 greenvideo.cc
+    智能下载：优先 yt-dlp，失败切分享页直链，最后 greenvideo.cc 兜底
     返回: (success, video_file, method_used, error_msg)
     """
     # 第一步：尝试 yt-dlp
     print("  📥 尝试 yt-dlp 下载...")
     success, video_file, error = download_video_ytdlp(url, output_dir, video_name, cookies_file)
-    
+
     if success:
         return True, video_file, "yt-dlp", None
-    
+
     print(f"  ⚠️ yt-dlp 失败: {error[:100]}")
+    print("  🔄 切换到 iesdouyin 分享页直链...")
+
+    # 第二步：分享页直链（抖音 Web 接口要签名，这条不要）
+    success, video_file, share_error = download_video_share(url, output_dir, video_name, cookies_file)
+
+    if success:
+        return True, video_file, "share-page", None
+
+    print(f"  ⚠️ 分享页失败: {share_error[:100]}")
     print("  🔄 切换到 greenvideo.cc 解析下载...")
-    
-    # 第二步：尝试 greenvideo.cc
+
+    # 第三步：尝试 greenvideo.cc（按 IP 限流，只作兜底）
     success, video_file, error = download_video_greenvideo(url, output_dir, video_name)
-    
+
     if success:
         return True, video_file, "greenvideo.cc", None
     else:
-        return False, None, "both_failed", error
+        # 两条路的原因都带上，界面才知道到底卡在签名还是限流
+        return False, None, "both_failed", f"{share_error}；{error}"
 
 
 def download_favorites(json_file: str, cookies_file: str, base_dir: str = str(Path.home() / "抖音视频下载")):

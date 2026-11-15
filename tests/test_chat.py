@@ -109,6 +109,33 @@ class AnswerTests(unittest.TestCase):
         self.assertIn('…（后略）', user_message)
         self.assertLess(len(user_message), chat.NOTE_CHARS + 1200)
 
+    def test_system_prompt_follows_current_settings(self):
+        """改了收藏夹 / 运行时间 / 子目录后，助手不会再说错配置。"""
+        default = chat.system_prompt()
+        self.assertIn('有帮助', default)
+        self.assertIn('04:00', default)
+        self.assertIn('90 - 抖音精选', default)
+        custom = chat.system_prompt({'favorite': '稍后再看', 'schedule_time': '23:30',
+                                     'kb_subdir': '我的视频库'})
+        self.assertIn('稍后再看', custom)
+        self.assertIn('23:30', custom)
+        self.assertIn('我的视频库', custom)
+        self.assertNotIn('04:00', custom)
+        self.assertNotIn('90 - 抖音精选', custom)
+        # 配置残缺或类型不对时回退到默认值，永不抛错。
+        self.assertIn('有帮助', chat.system_prompt({'favorite': ''}))
+        self.assertIn('04:00', chat.system_prompt({'schedule_time': 430}))
+        self.assertIn('90 - 抖音精选', chat.system_prompt(['not', 'a', 'dict']))
+
+    def test_answer_uses_configured_prompt(self):
+        kb = FakeKB({'素材/a.md': NOTE}, hits=[('素材/a.md', '测试笔记')])
+        enricher = FakeEnricher()
+        chat.answer(enricher, {'favorite': '稍后再看', 'schedule_time': '23:30',
+                               'kb_subdir': '我的视频库'}, kb, '阿努纳奇是谁')
+        system_message = enricher.calls[0][0]['content']
+        self.assertIn('稍后再看', system_message)
+        self.assertIn('我的视频库', system_message)
+
     def test_note_without_hits_falls_back_to_tree(self):
         class TreeKB(FakeKB):
             def tree(self):

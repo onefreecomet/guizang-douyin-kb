@@ -190,10 +190,24 @@ class KnowledgeTests(unittest.TestCase):
         self.assertIn(payload, self.kb.search('<script>')['items'][0]['snippet'])
         self.assertNotIn('<mark>', self.kb.search('<script>')['items'][0]['snippet'])
 
+    def test_custom_subdir_is_honoured(self):
+        """知识库子目录可自定义：写入与读取都落在新目录里。"""
+        self.assertEqual(self.kb.subdir, SUBDIR)
+        custom = KnowledgeBase(self.vault, subdir='我的视频库', cache_path=self.cache)
+        self.assertEqual(custom.subdir, '我的视频库')
+        result = custom.publish(self.item, self.source)
+        self.assertTrue(result['path'].startswith('我的视频库/素材/'), result['path'])
+        self.assertTrue((self.vault / '我的视频库' / '素材').is_dir())
+        self.assertFalse((self.vault / SUBDIR / '素材').exists())
+        note = custom.note(result['path'])
+        self.assertEqual(note['title'], '原始标题')
+        self.assertEqual(custom.tree()['items'][0]['path'].split('/')[0], '我的视频库')
+
     def test_controlled_subdir_and_traversal_are_rejected(self):
         outside = self.vault / '私人笔记.md'
         outside.write_text('不能读取', encoding='utf-8')
-        for subdir in ('', '..', '其他目录', SUBDIR + '/../其他目录', str(self.fixture)):
+        for subdir in ('', '  ', '..', '.', SUBDIR + '/../其他目录', '其他/目录',
+                       'a:b', 'a\\b', str(self.fixture)):
             with self.subTest(subdir=subdir), self.assertRaises(ValueError):
                 KnowledgeBase(self.vault, subdir=subdir)
         for requested in ('../私人笔记.md', SUBDIR + '/../私人笔记.md', '/私人笔记.md',

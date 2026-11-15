@@ -64,7 +64,7 @@ class AutopilotApiTests(unittest.TestCase):
 
         def fake_scan(cookies, **kwargs):
             self.assertEqual(Path(cookies), self.cookies)
-            self.assertEqual(kwargs['favorite'], '有帮助')
+            self.assertEqual(kwargs['favorite'], self.settings.get()['favorite'])
             self.scan_calls.append(str(cookies))
             return self.scan_impl(cookies, **kwargs)
 
@@ -162,7 +162,8 @@ class AutopilotApiTests(unittest.TestCase):
         persisted = json.loads((self.work / 'config.json').read_text(encoding='utf-8'))
         self.assertEqual(persisted['ai_api_key'], secret)
         before = (self.work / 'config.json').read_bytes()
-        for invalid in ({'kb_subdir': '../private'}, {'schedule_time': '12:00'},
+        for invalid in ({'kb_subdir': '../private'}, {'kb_subdir': ''},
+                        {'favorite': '   '}, {'schedule_time': '25:00'}, {'schedule_time': ':30'},
                         {'base_dir': 'relative'}, {'ai_daily_limit': 0},
                         {'ai_daily_limit': 2001}, {'ai_enabled': 'yes'},
                         {'skin': 'neon'}, {'skin': 7},

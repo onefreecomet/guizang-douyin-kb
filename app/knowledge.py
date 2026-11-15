@@ -2,7 +2,7 @@
 
 All returned markdown/snippets are untrusted plain text; rendering/escaping is the
 HTTP client's responsibility. Paths in responses are POSIX paths relative to vault.
-Only the fixed 90 folder is managed; topic/series pages are never rewritten.
+Only one vault subfolder is managed; topic/series pages are never rewritten.
 """
 from contextlib import contextmanager
 from datetime import datetime
@@ -22,6 +22,24 @@ except ImportError:
     from scripts.naming import clean_title, safe_name
 
 SUBDIR = '90 - 抖音精选'
+_BAD_SUBDIR = set('\\/:*?"<>|')
+_BAD_CHARS = set('\r\n\t')
+
+
+def _subdir_name(value):
+    """知识库子目录必须是 vault 下的一层普通目录名，不能是路径。"""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError('知识库子目录不能为空')
+    name = value.strip()
+    if name != value:
+        raise ValueError('知识库子目录不能有首尾空格')
+    if len(name) > 60 or name in ('.', '..'):
+        raise ValueError('知识库子目录名称无效')
+    if any(c in name for c in _BAD_SUBDIR) or _BAD_CHARS & set(name):
+        raise ValueError('知识库子目录不能包含路径分隔符或非法字符')
+    return name
+
+
 START = '<!-- AUTO:START -->'
 END = '<!-- AUTO:END -->'
 TOPIC_DIR = '主题'
@@ -133,12 +151,11 @@ def _no_links(path):
 
 class KnowledgeBase:
     def __init__(self, vault_path, subdir=SUBDIR, cache_path=None):
-        if subdir != SUBDIR:
-            raise ValueError('知识库仅允许固定目录 ' + SUBDIR)
+        self.subdir = _subdir_name(subdir)
         self.vault_path = _no_links(Path(vault_path).expanduser())
         if not self.vault_path.is_dir():
             raise ValueError('vault 必须是已存在的目录')
-        self.root = self.vault_path / SUBDIR
+        self.root = self.vault_path / self.subdir
         self._check(self.root)
         self.root.mkdir(exist_ok=True)
         self.cache_path = None
@@ -175,7 +192,7 @@ class KnowledgeBase:
         if path.is_absolute() or PureWindowsPath(value).drive or any(
                 part in {'', '.', '..'} for part in value.split('/')):
             raise ValueError('路径越出知识库目录')
-        if path.parts[0] == SUBDIR:
+        if path.parts[0] == self.subdir:
             path = PurePosixPath(*path.parts[1:])
         target = self._check(self.root.joinpath(*path.parts))
         if target.suffix.lower() != '.md':
@@ -504,7 +521,7 @@ class KnowledgeBase:
                 for depth, part in enumerate(parts[:-1], 1):
                     key = parts[:depth]
                     if key not in directories:
-                        node = {'path': PurePosixPath(SUBDIR, *key).as_posix(),
+                        node = {'path': PurePosixPath(self.subdir, *key).as_posix(),
                                 'name': part, 'type': 'directory', 'children': []}
                         directories[key] = node
                         children.append(node)
@@ -551,7 +568,7 @@ class KnowledgeBase:
 
     # -- derived pages: topics, series and the vault index -----------------
     def _wikilink(self, directory, name):
-        target = PurePosixPath(SUBDIR, directory, name).as_posix()
+        target = PurePosixPath(self.subdir, directory, name).as_posix()
         return '[[' + target + '|' + name + ']]'
 
     def _link(self, path, title):

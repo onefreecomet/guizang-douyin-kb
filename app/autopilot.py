@@ -26,6 +26,17 @@ DEFAULTS = {
 }
 
 
+_SCHEDULE = re.compile(r'^([01][0-9]|2[0-3]):([0-5][0-9])$')
+
+
+def schedule_clock(value):
+    """把 HH:MM 配置解析成 (hour, minute)；非法值已由 Settings.validate 拦截。"""
+    match = _SCHEDULE.match(str(value or ''))
+    if not match:
+        return 4, 0
+    return int(match.group(1)), int(match.group(2))
+
+
 class Settings:
     def __init__(self, path):
         self.path = Path(path)
@@ -40,8 +51,19 @@ class Settings:
 
     @staticmethod
     def validate(d):
-        if d['favorite'] != '有帮助' or d['schedule_time'] != '04:00' or d['kb_subdir'] != '90 - 抖音精选':
-            raise ValueError('本期固定扫描有帮助、北京时间04:00、90 - 抖音精选目录')
+        for key, label in (('favorite', '收藏夹'), ('kb_subdir', '知识库子目录')):
+            value = d[key]
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(label + '不能为空')
+            if value != value.strip():
+                raise ValueError(label + '不能有首尾空格')
+            if len(value) > 50 or any(c in value for c in '\r\n\t'):
+                raise ValueError(label + '最长 50 字，且不能包含换行或制表符')
+        subdir = d['kb_subdir']
+        if any(c in subdir for c in '\\/:*?"<>|') or subdir in ('.', '..'):
+            raise ValueError('知识库子目录必须是 vault 下的一层目录名，不能包含路径分隔符')
+        if not isinstance(d['schedule_time'], str) or not _SCHEDULE.match(d['schedule_time']):
+            raise ValueError('每日运行时间必须是 24 小时制的 HH:MM')
         for k in ('enabled', 'notify_enabled', 'ai_enabled'):
             if type(d[k]) is not bool:
                 raise ValueError(k + ' 必须是开关')
@@ -152,7 +174,8 @@ class Autopilot:
             d = copy.deepcopy(self.state)
         cfg = self.settings.get()
         now = datetime.now(CST)
-        due = now.replace(hour=4, minute=0, second=0, microsecond=0)
+        hour, minute = schedule_clock(cfg['schedule_time'])
+        due = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
         if now >= due:
             due += timedelta(days=1)
         d.update(enabled=cfg['enabled'], next_run=due.isoformat() if cfg['enabled'] else None)
@@ -174,7 +197,10 @@ class Autopilot:
             self._update(notification_error=str(exc) if isinstance(exc, ValueError) else '飞书通知发送失败，请检查登录与接收人设置')
 
     def manual(self, message):
-        self._update(state='needs_manual', phase='等待人工验证', message=message)
+        # Remember which day needed the human so the scheduler can retry on a
+        # later day without re-triggering the captcha over and over today.
+        self._update(state='needs_manual', phase='等待人工验证', message=message,
+                     manual_day=datetime.now(CST).date().isoformat())
         self.notify('归藏需要人工处理：' + message + '。请打开电脑控制台查看，完成后继续同步。')
 
     def start(self, retry_id=None, retry_only=False, scheduled_day=None):
@@ -296,7 +322,9 @@ class Autopilot:
                 from scan_favorites import ManualRequired
                 state = ('needs_manual' if isinstance(exc, ManualRequired) else
                          'paused' if isinstance(exc, PipelinePaused) else 'error')
-                self._update(state=state, phase='', message=str(exc))
+                extra = ({'manual_day': datetime.now(CST).date().isoformat()}
+                         if state == 'needs_manual' else {})
+                self._update(state=state, phase='', message=str(exc), **extra)
                 self.notify('归藏同步暂停：' + str(exc))
         finally:
             with self.lock:
@@ -357,6 +385,9 @@ class Autopilot:
                     raise PipelinePaused('飞书限流，已暂停整条流水线；请稍后手动继续并重试失败项')
                 raise RuntimeError(result.get('error') or '下载或转写未完成')
             self._row_update(row, phase='transcribed')
+            # 笔记 frontmatter 记录实际扫描的收藏夹名，换过收藏夹也不会写错。
+            if not str(row.get('favorite') or '').strip() and cfg.get('favorite'):
+                row['favorite'] = cfg['favorite']
             ai, warning = self._enrich(cfg, kb, row, result['directory'])
             self._update(stage='publish', phase='写入笔记：' + (row.get('title') or row['video_id']))
             note = (kb.publish(row, Path(result['directory']), ai) if ai
@@ -404,11 +435,23 @@ class Autopilot:
         with self.lock:
             if self.thread and self.thread.is_alive():
                 return
-            if self.state['state'] in ('paused', 'needs_manual'):
-                return
             day = now.date().isoformat()
-            due = now.hour >= 4 and self.state['last_schedule_day'] != day
+            hour, minute = schedule_clock(cfg['schedule_time'])
+            # 到点后当天只跑一次；改过运行时间也不会在同一天重复触发。
+            slot = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+            due = now >= slot and self.state['last_schedule_day'] != day
             resume = self.interrupted
+            if not (due or resume):
+                return
+            if self.state['state'] == 'paused':
+                # A user pause is a deliberate stop: keep it until the user resumes.
+                return
+            if (self.state['state'] == 'needs_manual'
+                    and self.state.get('manual_day') == day):
+                # Waiting for a human is not a terminal state, but retrying it
+                # again today would only re-trigger the captcha; the next
+                # scheduled day picks it up automatically.
+                return
         if due or resume:
             try:
                 self.start(scheduled_day=day if due else None)

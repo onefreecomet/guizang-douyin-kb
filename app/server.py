@@ -889,8 +889,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"items": items, "count": len(items)})
 
         if path == "/api/scan":
-            cookies = Path(data.get("cookies") or DEFAULT_COOKIES)
-            base = Path(data.get("base_dir") or DEFAULT_BASE)
+            scan_cfg = get_settings().get()
+            cookies = Path(data.get("cookies") or scan_cfg["cookies"] or DEFAULT_COOKIES)
+            base = Path(data.get("base_dir") or scan_cfg["base_dir"] or DEFAULT_BASE)
             if not cookies.exists():
                 return self._json({"ok": False, "error": f"cookies 文件不存在: {cookies}"}, 400)
             if not OPERATION_LOCK.acquire(blocking=False):
@@ -900,8 +901,8 @@ class Handler(BaseHTTPRequestHandler):
                     sys.path.insert(0, str(SCRIPTS))
                 import scan_favorites
                 log("🔍 开始检查收藏夹…")
-                found = scan_favorites.scan(cookies, headless=False,
-                                            log=lambda m: log("🔍 " + m))
+                found = scan_favorites.scan(cookies, favorite=scan_cfg["favorite"],
+                                            headless=False, log=lambda m: log("🔍 " + m))
                 have = local_downloaded_ids(base)
                 new = [i for i in found if i["video_id"] not in have]
                 log(f"🔍 收藏夹 {len(found)} 条 / 本地已有 {len(have)} 条 / 新增 {len(new)} 条")
@@ -919,8 +920,8 @@ class Handler(BaseHTTPRequestHandler):
                 with LOCK:
                     failed = {x["video_id"] for x in JOB["items"] if x["status"] != "done"}
                     items = [dict(x) for x in JOB["request_items"] if str(x["video_id"]) in failed]
-                    base = Path(JOB["base_dir"] or DEFAULT_BASE)
-                    cookies = Path(JOB["cookies"] or DEFAULT_COOKIES)
+                    base = Path(JOB["base_dir"] or get_settings().get()["base_dir"] or DEFAULT_BASE)
+                    cookies = Path(JOB["cookies"] or get_settings().get()["cookies"] or DEFAULT_COOKIES)
                     transcribe = JOB["transcribe"]
                     needs_rebuild = any(x.get("terminal") for x in JOB["items"] if x["video_id"] in failed)
                 if needs_rebuild and not data.get("rebuild_minutes"):
@@ -928,8 +929,8 @@ class Handler(BaseHTTPRequestHandler):
                                        "error": "部分妙记已失败或创建结果未知。请先在飞书核对；重新创建可能重复消耗转写额度，确认继续？"}, 409)
             else:
                 items = data.get("items") or []
-                base = Path(data.get("base_dir") or DEFAULT_BASE)
-                cookies = Path(data.get("cookies") or DEFAULT_COOKIES)
+                base = Path(data.get("base_dir") or get_settings().get()["base_dir"] or DEFAULT_BASE)
+                cookies = Path(data.get("cookies") or get_settings().get()["cookies"] or DEFAULT_COOKIES)
                 transcribe = bool(data.get("transcribe", True))
             if not isinstance(items, list) or not items:
                 return self._json({"ok": False, "error": "没有可重试或下载的视频"}, 400)

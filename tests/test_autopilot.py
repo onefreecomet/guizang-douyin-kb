@@ -5,12 +5,12 @@ import sys
 import tempfile
 import threading
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / 'app'), str(ROOT / 'scripts')]
-from autopilot import Autopilot, Settings, CST
+from autopilot import Autopilot, Settings, CST, schedule_clock
 
 
 class FakeKB:
@@ -109,6 +109,37 @@ class PipelineTests(PipelineBase):
         self.auto.start(); self.join()
         self.assertEqual(self.auto.snapshot()['state'], 'done')
 
+    def test_manual_state_retries_on_next_day_but_not_same_day(self):
+        """等待人工验证不是终态：当天不再重试，次日定时必须自动重跑。"""
+        def require_manual(*args):
+            self.scans.append(1)
+            from scan_favorites import ManualRequired
+            raise ManualRequired('抖音验证码，请人工处理后重试')
+        self.auto.scan = require_manual
+        self.auto._update(last_schedule_day='2026-11-14')
+        self.auto.tick(datetime(2026, 11, 15, 4, 0, tzinfo=CST)); self.join()
+        snap = self.auto.snapshot()
+        self.assertEqual(snap['state'], 'needs_manual')
+        self.assertEqual(snap['manual_day'], '2026-11-15')
+        first = self.auto.thread
+        # 同一天内不重复触发，避免反复弹验证码。
+        self.auto.tick(datetime(2026, 11, 15, 12, 0, tzinfo=CST))
+        self.assertIs(self.auto.thread, first)
+        self.assertEqual(len(self.scans), 1)
+        # 次日 04:00 必须自己重新跑一次，不需要人工点继续同步。
+        self.auto.tick(datetime(2026, 11, 16, 4, 0, tzinfo=CST)); self.join()
+        self.assertIsNot(self.auto.thread, first)
+        self.assertEqual(len(self.scans), 2)
+        self.assertEqual(self.auto.snapshot()['last_schedule_day'], '2026-11-16')
+
+    def test_user_pause_survives_next_day_schedule(self):
+        """用户主动暂停是明确意图，不能被次日定时自动覆盖。"""
+        self.auto.pause()
+        self.auto._update(last_schedule_day='2026-11-14')
+        self.auto.tick(datetime(2026, 11, 16, 4, 0, tzinfo=CST))
+        self.assertIsNone(self.auto.thread)
+        self.assertEqual(self.auto.snapshot()['state'], 'paused')
+
     def test_schedule_catchup_once_beijing_and_busy_not_consumed(self):
         self.auto._update(last_schedule_day='2026-11-12')
         self.auto.tick(datetime(2026, 11, 13, 3, 59, tzinfo=CST))
@@ -172,10 +203,43 @@ class PipelineTests(PipelineBase):
         self.settings.update({'ai_api_key': 'fixture-secret'})
         self.assertTrue(self.settings.get(public=True)['ai_key_set'])
         self.assertNotIn('fixture-secret', json.dumps(self.settings.get(public=True)))
-        for changes in ({'kb_subdir': '../escape'}, {'schedule_time': '08:00'}, {'enabled': 'false'}, {'unexpected': True}):
+        for changes in ({'kb_subdir': '../escape'}, {'kb_subdir': ''}, {'favorite': '   '},
+                        {'schedule_time': '8:5'}, {'schedule_time': '24:00'},
+                        {'enabled': 'false'}, {'unexpected': True}):
             with self.assertRaises(ValueError):
                 self.settings.update(changes)
         self.assertEqual(Settings(self.settings.path).get()['ai_api_key'], 'fixture-secret')
+
+    def test_custom_favorite_and_schedule_are_persisted(self):
+        """收藏夹名与每日运行时间现在可自定义，并且真的被保存下来。"""
+        self.settings.update({'favorite': '稍后再看', 'schedule_time': '23:30'})
+        saved = Settings(self.settings.path).get()
+        self.assertEqual(saved['favorite'], '稍后再看')
+        self.assertEqual(saved['schedule_time'], '23:30')
+        self.assertEqual(schedule_clock('23:30'), (23, 30))
+        self.assertEqual(schedule_clock('00:05'), (0, 5))
+        self.assertEqual(schedule_clock('8:5'), (4, 0))
+        self.assertEqual(schedule_clock(None), (4, 0))
+
+    def test_schedule_time_controls_when_tick_runs(self):
+        """改到 23:30 后，04:00 不再触发；23:30 才触发。"""
+        self.settings.update({'schedule_time': '23:30'})
+        self.auto._update(last_schedule_day='2026-11-14')
+        self.auto.tick(datetime(2026, 11, 15, 4, 0, tzinfo=CST))
+        self.assertIsNone(self.auto.thread)
+        self.auto.tick(datetime(2026, 11, 15, 23, 30, tzinfo=CST)); self.join()
+        self.assertEqual(len(self.scans), 1)
+        self.assertEqual(self.auto.snapshot()['last_schedule_day'], '2026-11-15')
+
+    def test_next_run_follows_custom_schedule_time(self):
+        self.settings.update({'schedule_time': '23:30'})
+        next_run = self.auto.snapshot()['next_run']
+        self.assertTrue(next_run, '开启了每日同步就必须有 next_run')
+        parsed = datetime.fromisoformat(next_run)
+        self.assertEqual((parsed.hour, parsed.minute), (23, 30))
+        left = parsed - datetime.now(CST)
+        self.assertGreater(left, timedelta(0))
+        self.assertLessEqual(left, timedelta(hours=24))
 
 
 class RetryTests(PipelineBase):

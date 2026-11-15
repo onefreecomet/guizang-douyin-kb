@@ -155,7 +155,7 @@ Node 22（`bin\node\node.exe`，83.2 MB）、程序本体（`app`，1.7 MB）。
 ## 七、给想改代码的人
 
 ```powershell
-# 全套测试（251 项，约 21 秒）。有便携运行时就直接用它，没有才用 .venv
+# 全套测试（265 项，约 22 秒）。有便携运行时就直接用它，没有才用 .venv
 runtime\python\python.exe -m unittest discover -s tests -v
 
 # 只看路径解析这块
