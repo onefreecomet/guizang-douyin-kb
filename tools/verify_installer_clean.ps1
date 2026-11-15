@@ -48,6 +48,7 @@ $regKey     = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{8C3F1A
 $ProdDir    = "C:\Users\Administrator\.workbuddy\skills\douyin-favorites-downloader"
 
 $script:fails = 0
+$script:lnkBackup = @{}
 function Step($m) { Write-Host ""; Write-Host "== $m" -ForegroundColor Cyan }
 function Ok($m)   { Write-Host "  OK   $m" -ForegroundColor Green }
 function Bad($m)  { Write-Host "  FAIL $m" -ForegroundColor Red; $script:fails++ }
@@ -86,11 +87,20 @@ Write-Host "安装包: $Setup"
 Write-Host ("体积  : {0:N1} MB" -f ((Get-Item $Setup).Length / 1MB))
 
 Step "清场（安装目录 / 数据目录 / 两个快捷方式 / 注册表 / 日志）"
+# 快捷方式路径与生产环境重合：先备份用户真实的两个，收尾时原样放回
+$script:lnkBackup = @{}
+foreach ($lnk in @($lnkStartup, $lnkDesktop)) {
+    if (Test-Path -LiteralPath $lnk) {
+        $bak = $lnk + ".verify-bak"
+        Copy-Item -LiteralPath $lnk -Destination $bak -Force
+        $script:lnkBackup[$lnk] = $bak
+    }
+}
 foreach ($p in @($InstallDir, $HomeDir)) { if (Test-Path $p) { Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue } }
 foreach ($p in @($lnkStartup, $lnkDesktop, $LogFile, $Stage)) { if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue } }
 if (Test-Path $regKey) { Remove-Item $regKey -Recurse -Force -ErrorAction SilentlyContinue }
 KillByPath $InstallDir
-Ok "干净了"
+Ok "干净了（用户原有的两个快捷方式已备份，收尾会放回）"
 
 Step "剥离 PATH（只留 System32）+ 全新 GUIZANG_HOME"
 $envPathBackup = $env:PATH
@@ -261,6 +271,18 @@ if ($Keep) {
     Remove-Item $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 foreach ($p in @($HomeDir, $Stage)) { Remove-Item $p -Recurse -Force -ErrorAction SilentlyContinue }
+
+Step "把用户原有的快捷方式放回去（安装/卸载会覆盖同一路径）"
+foreach ($lnk in @($lnkStartup, $lnkDesktop)) {
+    $bak = $script:lnkBackup[$lnk]
+    if ($bak -and (Test-Path -LiteralPath $bak)) {
+        Copy-Item -LiteralPath $bak -Destination $lnk -Force
+        Remove-Item -LiteralPath $bak -Force -ErrorAction SilentlyContinue
+        Ok "已恢复 $lnk"
+    } elseif (-not (Test-Path -LiteralPath $lnk)) {
+        Write-Host "  注意：$lnk 原本就不存在，保持不存在" -ForegroundColor Yellow
+    }
+}
 
 Write-Host ""
 if ($script:fails -eq 0) { Write-Host "全部通过" -ForegroundColor Green; exit 0 }
