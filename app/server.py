@@ -426,6 +426,26 @@ def shutdown_server(server):
     server.shutdown()
 
 
+def quit_and_shutdown(server):
+    """「退出服务」的后台收尾：真退不掉就必须把状态还原，不能装死。
+
+    这里一旦抛错，调用方（HTTP 处理线程）已经回了 {"ok": true}，而进程还活着：
+    QUITTING 仍为 True（新任务全被拒）、watchdog.pause 还留着（守护永远不拉起）。
+    那就是一个「看着在跑、其实什么也不干」的僵尸服务。所以失败时显式回滚。
+    """
+    try:
+        shutdown_server(server)
+    except Exception as exc:  # pragma: no cover - 只在清理超时等少见情况触发
+        global QUITTING
+        with LOCK:
+            QUITTING = False
+        watchdog_resume()
+        try:
+            log(f"退出服务失败，已回滚为可用状态：{type(exc).__name__}: {exc}")
+        except Exception:
+            pass
+
+
 def get_settings():
     global SETTINGS
     from autopilot import Settings
@@ -996,9 +1016,11 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 with LOCK:
                     QUITTING = False
+                # 没退成就别留着退出标记：留着它守护进程会一直以为「用户主动退出」而不拉起。
+                watchdog_resume()
                 return self._json({"ok": False, "error": f"任务清理失败，未退出: {exc}"}, 500)
             self._json({"ok": True})
-            threading.Thread(target=shutdown_server, args=(self.server,), daemon=True).start()
+            threading.Thread(target=quit_and_shutdown, args=(self.server,), daemon=True).start()
             return
 
         return self._send(404, NOT_FOUND_HTML, MIME['.html'])

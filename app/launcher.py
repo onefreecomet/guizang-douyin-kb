@@ -79,7 +79,17 @@ def open_window():
         webbrowser.open(URL)
 
 
+def resume_watchdog():
+    """点桌面图标 = 用户希望服务回来，顺手清掉「退出服务」留下的暂停标记。"""
+    try:
+        if _paths is not None:
+            _paths.clear_pause_marker()
+    except Exception:
+        pass
+
+
 def main():
+    resume_watchdog()
     start_server()
     try:
         from tray import activate_console, ensure_tray

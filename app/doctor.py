@@ -45,6 +45,25 @@ def load_config() -> dict:
         return {}
 
 
+def config_file() -> Path:
+    return paths.data_dir() / "config.json"
+
+
+def configured() -> bool:
+    """是不是真的配置过。刚装完还没有 config.json —— 这时下面几行走的是默认路径。"""
+    data = load_config()
+    return bool(data)
+
+
+def default_path_note(cfg: dict, key: str, fallback: Path) -> str:
+    """没配置时 cookies / 库 / 下载目录会退回「用户主目录」下的默认位置。
+
+    这条注释是给第一次跑体检的人看的：几行 ✘ 不等于装坏了，只是还没在控制台
+    「设置」里选过路径。
+    """
+    return "" if cfg.get(key) else f"（默认路径 {fallback}，可在控制台「设置」里改）"
+
+
 def _masked(value: str) -> str:
     value = (value or "").strip()
     if not value:
@@ -100,7 +119,9 @@ def checks(cfg: dict | None = None) -> list:
     rows.append((
         "cookies", "抖音 cookies",
         "ok" if cookies.is_file() else "bad",
-        str(cookies) if cookies.is_file() else f"{cookies}（不存在：登录抖音后导出 cookies.txt 放到这里）",
+        str(cookies) if cookies.is_file()
+        else f"{cookies}（不存在：登录抖音后导出 cookies.txt 放到这里）"
+             + default_path_note(cfg, "cookies", Path.home() / "抖音视频下载" / "cookies.txt"),
     ))
 
     vault = Path(cfg.get("vault_path") or (Path.home() / "Obsidian" / "Vault"))
@@ -108,7 +129,9 @@ def checks(cfg: dict | None = None) -> list:
     rows.append((
         "vault", "Obsidian 库",
         "ok" if vault.is_dir() else "bad",
-        str(vault) if vault.is_dir() else f"{vault}（不存在：在控制台「设置」里选你的库）",
+        str(vault) if vault.is_dir()
+        else f"{vault}（不存在：在控制台「设置」里选你的库）"
+             + default_path_note(cfg, "vault_path", Path.home() / "Obsidian" / "Vault"),
     ))
     rows.append((
         "base_dir", "下载目录",
@@ -154,6 +177,10 @@ def render(rows) -> str:
         lines.append(f"还有 {len(critical_bad)} 个关键项没过：")
         for key, name, _, detail in critical_bad:
             lines.append(f"  · {name}：{detail}")
+        if not configured():
+            lines.append("")
+            lines.append("提示：这台机器还没在控制台「设置」里配过路径，上面几项用的是用户主目录下的默认位置。")
+            lines.append("      打开控制台 →「设置」，选好 cookies、Obsidian 库、下载目录，再跑一次体检即可。")
     else:
         lines.append("关键项全部通过，可以用了。")
     skipped = [r[1] for r in rows if r[2] == "skip" and r[0] in OPTIONAL]

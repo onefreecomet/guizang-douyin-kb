@@ -136,6 +136,10 @@ class Autopilot:
         self.db = self.work / 'pipeline.db'
         self.state = {'state': 'idle', 'phase': '', 'message': '', 'last_run': None,
                       'last_schedule_day': datetime.now(CST).date().isoformat(), 'notification_error': '', 'items': []}
+        # 本次运行属于哪一天：定时触发时取调度日，手动触发时取今天。
+        # manual() 用它记 manual_day —— 若直接用系统时间，把 tick 时间注入后
+        # 就会算出「今天的日期不等于被测试的日期」这种自相矛盾的记录。
+        self.current_day = datetime.now(CST).date().isoformat()
         with self._connection() as db:
             db.execute('CREATE TABLE IF NOT EXISTS checkpoint (id INTEGER PRIMARY KEY CHECK(id=1), body TEXT NOT NULL)')
             row = db.execute('SELECT body FROM checkpoint WHERE id=1').fetchone()
@@ -200,7 +204,7 @@ class Autopilot:
         # Remember which day needed the human so the scheduler can retry on a
         # later day without re-triggering the captcha over and over today.
         self._update(state='needs_manual', phase='等待人工验证', message=message,
-                     manual_day=datetime.now(CST).date().isoformat())
+                     manual_day=self.current_day)
         self.notify('归藏需要人工处理：' + message + '。请打开电脑控制台查看，完成后继续同步。')
 
     def start(self, retry_id=None, retry_only=False, scheduled_day=None):
@@ -211,6 +215,7 @@ class Autopilot:
                 raise ValueError('已有下载或收藏夹检查正在运行')
             try:
                 self.stop_event.clear()
+                self.current_day = scheduled_day or datetime.now(CST).date().isoformat()
                 if retry_only:
                     matches = [x for x in self.state['items'] if (not retry_id or x['video_id'] == retry_id) and x['status'] != 'done']
                     if not matches:
@@ -322,7 +327,7 @@ class Autopilot:
                 from scan_favorites import ManualRequired
                 state = ('needs_manual' if isinstance(exc, ManualRequired) else
                          'paused' if isinstance(exc, PipelinePaused) else 'error')
-                extra = ({'manual_day': datetime.now(CST).date().isoformat()}
+                extra = ({'manual_day': self.current_day}
                          if state == 'needs_manual' else {})
                 self._update(state=state, phase='', message=str(exc), **extra)
                 self.notify('归藏同步暂停：' + str(exc))

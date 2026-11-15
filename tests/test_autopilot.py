@@ -120,6 +120,8 @@ class PipelineTests(PipelineBase):
         self.auto.tick(datetime(2026, 11, 15, 4, 0, tzinfo=CST)); self.join()
         snap = self.auto.snapshot()
         self.assertEqual(snap['state'], 'needs_manual')
+        # manual_day 必须跟着被注入的调度时间走；用系统当前时间会让「当天不重复
+        # 弹验证码」这条判断整天失效（测试也正是因此失败过）。
         self.assertEqual(snap['manual_day'], '2026-11-15')
         first = self.auto.thread
         # 同一天内不重复触发，避免反复弹验证码。

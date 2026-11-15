@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 APP_DIR = Path(__file__).resolve().parent
@@ -52,6 +53,27 @@ def ensure_data_dir() -> Path:
 def ensure_bin_dir() -> Path:
     BIN_DIR.mkdir(parents=True, exist_ok=True)
     return BIN_DIR
+
+
+def pause_marker() -> Path:
+    """「退出服务」留下的暂停标记，守护进程看到它就停止自动拉起。"""
+    return data_dir() / "watchdog.pause"
+
+
+def clear_pause_marker() -> bool:
+    """手动启动（桌面图标 / 托盘 / 命令行）= 用户希望服务回来，标记就该消掉。
+
+    否则会死锁：服务还活着 → 启动器不重启服务 → 服务自己那条清理标记的代码
+    永远跑不到 → 守护进程一直停在暂停态，之后再崩就没人拉起了。
+    """
+    try:
+        marker = pause_marker()
+        if marker.exists():
+            marker.unlink()
+            return True
+    except OSError:
+        pass
+    return False
 
 
 # ---------------------------------------------------------------- 通用

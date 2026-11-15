@@ -59,6 +59,9 @@ ID_OPEN, ID_BROWSER, ID_QUIT_SERVICE, ID_EXIT = 1, 2, 3, 4
 ID_ABOUT = 5
 TIMER_ID = 1
 POLL_MS = 2000
+# 守护进程补拉托盘时会给子进程打上这个环境变量：那种启动不算用户意图，
+# 不能因为守护自己补了个托盘就把用户刚点的「退出服务」悄悄撤销。
+SPAWN_ENV = "GUIZANG_TRAY_SPAWNED"
 
 
 class NOTIFYICONDATAW(ctypes.Structure):
@@ -375,16 +378,52 @@ def ensure_tray() -> bool:
     windowless = exe.with_name("pythonw.exe")
     runner = windowless if windowless.exists() else exe
     flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    env = dict(os.environ)
+    env[SPAWN_ENV] = "1"
     subprocess.Popen([str(runner), str(Path(__file__).resolve())], cwd=str(APP),
                      creationflags=flags, stdin=subprocess.DEVNULL,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True,
+                     env=env)
     return True
+
+
+def pause_marker_pending() -> bool:
+    """「退出服务」留下的暂停标记还在吗（守护补拉托盘时要先看这个）。"""
+    try:
+        import paths as _paths
+
+        return _paths.pause_marker().exists()
+    except Exception:
+        return False
+
+
+def clear_pause_marker():
+    """用户亲手把托盘叫起来 = 希望服务在跑，清掉「退出服务」留下的暂停标记。
+
+    守护进程自己补拉托盘时不算用户意图（见 SPAWN_ENV），否则会把用户刚点的
+    「退出服务」悄悄撤销。
+    """
+    if os.environ.get(SPAWN_ENV):
+        return
+    try:
+        import paths as _paths
+
+        _paths.clear_pause_marker()
+    except Exception:
+        pass
 
 
 def main():
     mutex = acquire_mutex()
     if mutex is None:
         return 0
+    if os.environ.get(SPAWN_ENV):
+        # 守护进程自己补拉托盘：用户可能刚点了「退出服务」。这时既不要撤销
+        # 标记，也不要把服务偷偷拉回来——那样「退出服务」等于没退。
+        if pause_marker_pending():
+            return 0
+    else:
+        clear_pause_marker()
     ensure_server()
     try:
         return Tray().run()

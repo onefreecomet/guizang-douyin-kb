@@ -9,7 +9,7 @@ import threading
 import unittest
 import urllib.request
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'app'))
@@ -94,6 +94,43 @@ class ApiTests(unittest.TestCase):
             assert root.resolve().parent == (ROOT/'tests'/'.runs').resolve() and len(root.name) == 32
             import shutil
             shutil.rmtree(root)
+
+
+class QuitRollbackTests(unittest.TestCase):
+    """「退出服务」清理失败时必须回滚，不能变成接收任务却什么都不做的僵尸进程。"""
+
+    def setUp(self):
+        self.root = ROOT / 'tests' / '.runs' / uuid.uuid4().hex
+        self.root.mkdir(parents=True)
+        self.marker = self.root / 'watchdog.pause'
+        self.original_quitting = server.QUITTING
+        for target, value in (('QUITTING', self.original_quitting),
+                              ('WATCHDOG_PAUSE', self.marker)):
+            p = patch.object(server, target, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.addCleanup(self._cleanup_root)
+
+    def _cleanup_root(self):
+        import shutil
+        assert self.root.resolve().parent == (ROOT / 'tests' / '.runs').resolve()
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def test_failed_shutdown_restores_quitting_and_drops_the_pause_marker(self):
+        with patch.object(server, 'shutdown_server', Mock(side_effect=RuntimeError('任务仍在清理'))):
+            server.QUITTING = True
+            server.watchdog_pause('用户退出服务')
+            self.assertTrue(self.marker.exists())
+            server.quit_and_shutdown(Mock())
+        self.assertFalse(server.QUITTING, '退出失败后必须重新接受任务')
+        self.assertFalse(self.marker.exists(), '退出标记必须清掉，否则守护永远不拉起')
+
+    def test_clean_shutdown_leaves_the_quit_state_alone(self):
+        with patch.object(server, 'shutdown_server') as shutdown:
+            server.QUITTING = True
+            server.quit_and_shutdown(Mock())
+        shutdown.assert_called_once()
+        self.assertTrue(server.QUITTING, '正常退出时进程本来就要结束，不需要翻转标志')
 
 
 if __name__ == '__main__':

@@ -112,6 +112,62 @@ def start_server(port=DEFAULT_PORT):
     log('服务未响应，已尝试重新启动：' + ' '.join(server_command(port)))
 
 
+def uptime_seconds():
+    """How long Windows has been running, in seconds (None when it cannot be asked)."""
+    try:
+        import ctypes
+
+        fn = ctypes.windll.kernel32.GetTickCount64
+        fn.restype = ctypes.c_uint64
+        return float(fn()) / 1000.0
+    except Exception:  # pragma: no cover - only on exotic hosts
+        return None
+
+
+def clear_stale_pause():
+    """Drop a pause marker left behind by the PREVIOUS boot.
+
+    "退出服务" writes the marker so the watchdog stops fighting the user. Read
+    literally, that marker outlives a reboot: the next boot would find it and
+    never start anything — the classic "开机自启不生效" report. A marker created
+    before this boot belongs to a finished session, so it is cleared; one created
+    after boot time is a real, current decision and is respected.
+    """
+    try:
+        if not PAUSE_PATH.exists():
+            return False
+    except OSError:
+        return False
+    uptime = uptime_seconds()
+    if uptime is None:
+        return False
+    try:
+        stamp = PAUSE_PATH.stat().st_mtime
+    except OSError:
+        return False
+    if stamp >= time.time() - uptime:
+        return False  # written after this boot: the user just quit on purpose
+    try:
+        PAUSE_PATH.unlink()
+    except OSError:
+        return False
+    log('退出标记是上一次开机留下的，已清除；开机自启继续生效')
+    return True
+
+
+def bootstrap(port=DEFAULT_PORT):
+    """Bring the service up right away when the watchdog starts, not after two misses."""
+    clear_stale_pause()
+    if PAUSE_PATH.exists():
+        log('检测到本次开机后的退出标记，不自动拉起（手动启动服务后恢复）')
+        return False
+    if probe(port):
+        return False
+    log('守护启动：服务未在运行，立即拉起')
+    start_server(port)
+    return True
+
+
 def acquire_lock():
     """Return a handle that keeps this process the only watchdog, or None."""
     WORK_DIR.mkdir(parents=True, exist_ok=True)
@@ -157,6 +213,7 @@ def main(argv=None):
         log('已有守护进程在运行，退出')
         return 0
     log(f'守护启动：端口 {port}，检查间隔 {interval} 秒')
+    bootstrap(port)
     ensure_tray_quietly()
     check_ytdlp_update()
     failures, paused = 0, False
